@@ -1,0 +1,905 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Mental Finance">
+<meta name="theme-color" content="#f3f4f6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<title>Mental Finance</title>
+<style>
+/* Simple model, phone first: plan (cascade) → one weekly number (what you set aside) → goal and fixed-cost levers. */
+:root {
+  --bg: #f3f4f6; --panel: #ffffff; --ink: #15171c; --muted: #6b7080; --line: #e3e5ea; --track: #eceef2;
+  --sel: #15171c; --sel-ink: #ffffff; --good: #15803d; --bad: #c2372b;
+  --good-soft: #e7f5ec; --bad-soft: #fbe9e7; --accent: #2563eb; --warn: #a16207; --warn-soft: #fbf3dc;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f1115; --panel: #171a20; --ink: #eef0f4; --muted: #9aa0ae; --line: #262a33; --track: #23272f;
+  --sel: #eef0f4; --sel-ink: #0f1115; --good: #4ade80; --bad: #f87171;
+  --good-soft: #13291c; --bad-soft: #321716; --accent: #60a5fa; --warn: #fbbf24; --warn-soft: #33290f; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0f1115; --panel: #171a20; --ink: #eef0f4; --muted: #9aa0ae; --line: #262a33; --track: #23272f;
+  --sel: #eef0f4; --sel-ink: #0f1115; --good: #4ade80; --bad: #f87171;
+  --good-soft: #13291c; --bad-soft: #321716; --accent: #60a5fa; --warn: #fbbf24; --warn-soft: #33290f; color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 15px; -webkit-font-smoothing: antialiased; }
+[hidden] { display: none !important; }
+.app { max-width: 36rem; margin-inline: auto; padding: 18px 16px calc(92px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 14px; }
+button, input, select { font: inherit; color: inherit; }
+button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.brand { font-weight: 700; font-size: 1.1rem; letter-spacing: -0.01em; }
+.chip { font-size: 0.8rem; color: var(--muted); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.card h2 { font-size: 1rem; font-weight: 600; margin: 0; }
+.top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.note { font-size: 0.82rem; color: var(--muted); line-height: 1.5; margin: 0; }
+.num { font-variant-numeric: tabular-nums; }
+.switch { display: inline-flex; gap: 2px; padding: 3px; background: var(--track); border-radius: 999px; }
+.switch button { font-size: 0.82rem; font-weight: 500; border: 0; background: transparent; color: var(--muted); padding: 5px 12px; border-radius: 999px; cursor: pointer; }
+.switch button[aria-pressed="true"] { background: var(--panel); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+
+/* cascade: the personal income statement */
+.cascade { display: flex; flex-direction: column; }
+.cl { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 9px 0; font-size: 0.95rem; }
+.cl + .cl { border-top: 1px solid var(--line); }
+.cl .op { color: var(--muted); display: inline-block; width: 1.1em; }
+.cl.sub { font-weight: 700; }
+.cl.flex { background: var(--track); margin: 4px -10px; padding: 11px 10px; border-radius: 12px; border-top: 0; }
+.cl.flex + .cl { border-top: 0; }
+.cl .amt { display: inline-flex; align-items: baseline; gap: 8px; }
+.cl .pct { color: var(--muted); font-weight: 500; font-size: 0.8rem; width: 2.6em; text-align: right; font-variant-numeric: tabular-nums; }
+.cl.goal .pct { color: var(--good); }
+.cl.extra { font-size: 0.85rem; color: var(--muted); }
+.cl.total { font-size: 1rem; }
+.tag { font-size: 0.7rem; font-weight: 600; padding: 2px 7px; border-radius: 999px; background: var(--track); color: var(--muted); white-space: nowrap; }
+.tag.d { background: var(--good-soft); color: var(--good); }
+.seg2 { display: flex; gap: 4px; padding: 3px; background: var(--track); border-radius: 10px; }
+.seg2 button { flex: 1; border: 0; background: none; padding: 8px; border-radius: 8px; font-weight: 600; font-size: 0.88rem; color: var(--muted); cursor: pointer; }
+.seg2 button[aria-pressed="true"] { background: var(--panel); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.cat-help { font-size: 0.8rem; color: var(--muted); line-height: 1.45; margin: -2px 0 0; }
+.grp { font-size: 0.78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; padding-top: 6px; }
+.seg3v { margin-top: -2px; }
+.chartbox { width: 100%; min-height: 40px; }
+.chartbox svg { display: block; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+.chartbox text { font-family: var(--font); }
+.chartbox .v { font-size: 11.5px; font-weight: 700; fill: var(--ink); font-variant-numeric: tabular-nums; }
+.chartbox .p { font-size: 10.5px; fill: var(--muted); }
+.chartbox .lab { font-size: 11px; fill: var(--muted); }
+.chartbox .tk { font-size: 11px; fill: var(--muted); font-variant-numeric: tabular-nums; }
+.chartbox .goal-t { fill: var(--ink); font-weight: 700; }
+.legend { display: flex; gap: 6px 14px; flex-wrap: wrap; font-size: 0.78rem; color: var(--muted); }
+.legend i { display: inline-block; width: 16px; height: 0; vertical-align: middle; margin-right: 6px; border-top: 2px solid; }
+.mlist { display: flex; flex-direction: column; }
+.meta { border-top: 1px solid var(--line); }
+.meta summary { list-style: none; cursor: pointer; padding: 12px 0; }
+.meta summary::-webkit-details-marker { display: none; }
+.meta summary b { font-weight: 600; }
+.msub { display: flex; justify-content: space-between; gap: 8px; font-size: 0.8rem; color: var(--muted); }
+.msub .eta-s { color: var(--ink); font-weight: 600; }
+.mbody, .mform { display: flex; flex-direction: column; gap: 12px; padding: 2px 0 16px; }
+.inline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.hist { display: flex; flex-direction: column; gap: 2px; }
+.upd-in { flex: 1; }
+.mark.warn { background: var(--warn-soft); color: var(--warn); } .mark.na { background: var(--track); color: var(--muted); }
+.verdict b.warn { color: var(--warn); }
+.proto { font-size: 0.7rem; font-weight: 700; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 1px 7px; vertical-align: 2px; margin-left: 4px; }
+.principio { font-size: 0.82rem; line-height: 1.5; color: var(--muted); background: var(--track); border-radius: 12px; padding: 10px 12px; }
+.principio b { color: var(--ink); }
+.hcierres { display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--line); padding-top: 10px; }
+.cfilas { display: flex; flex-direction: column; }
+.chead, .cfila { display: grid; grid-template-columns: minmax(0, 1fr) auto 2.6rem 2.6rem 2.6rem; gap: 6px; align-items: center; }
+.chead { font-size: 0.72rem; color: var(--muted); padding: 0 8px 4px; }
+.chead span:nth-child(2) { text-align: right; }
+.cc { display: flex; justify-content: center; }
+.cfila { width: 100%; border: 0; background: none; padding: 8px; border-radius: 10px; cursor: pointer; text-align: left; font-size: 0.92rem; }
+.cfila + .cfila { border-top: 1px solid var(--line); border-radius: 0; }
+.cfila.on { background: var(--track); border-radius: 10px; }
+.cfila .cm { font-weight: 600; white-space: nowrap; } .cfila .cd { text-align: right; font-weight: 600; }
+.cd.ok { color: var(--good); } .cd.warn { color: var(--warn); } .cd.no { color: var(--bad); }
+.cfila .mark { width: 24px; height: 24px; font-size: 0.75rem; }
+.tlist { display: flex; flex-direction: column; gap: 8px; }
+.ci-total { font-size: 0.85rem; font-weight: 600; text-align: right; }
+.mform .switch button { padding: 4px 10px; font-size: 0.78rem; white-space: nowrap; }
+.mform .switch { flex: none; }
+.ask { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 12px; background: var(--warn-soft); }
+.opts { display: flex; flex-wrap: wrap; gap: 6px; }
+.fld .hint { font-size: 0.75rem; line-height: 1.4; }
+.tip { font-size: 0.8rem; line-height: 1.45; color: var(--muted); margin: 0; padding: 8px 10px; border-left: 3px solid var(--accent); background: var(--track); border-radius: 0 8px 8px 0; }
+.tip b { color: var(--ink); }
+.pago-q { font-size: 1.15rem; font-weight: 700; line-height: 1.3; letter-spacing: -0.01em; }
+.dots { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; padding-top: 4px; border-top: 1px solid var(--line); }
+.dot { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 0.66rem; color: var(--muted); padding-top: 8px; }
+.dot .mark { width: 22px; height: 22px; font-size: 0.75rem; }
+.plan-note { font-size: 0.75rem; color: var(--muted); line-height: 1.45; margin: -2px 0 0; }
+.cl.goal { font-weight: 700; color: var(--good); }
+
+/* weekly check */
+.big { font-size: 2.6rem; font-weight: 700; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+.k { font-size: 0.9rem; font-weight: 600; color: var(--muted); }
+.mark { flex: none; width: 26px; height: 26px; border-radius: 50%; display: inline-grid; place-items: center; font-weight: 700; font-size: 0.85rem; }
+.mark.ok { background: var(--good-soft); color: var(--good); } .mark.no { background: var(--bad-soft); color: var(--bad); }
+.verdict { display: flex; gap: 10px; align-items: flex-start; font-size: 0.95rem; line-height: 1.4; }
+.verdict b.ok { color: var(--good); } .verdict b.no { color: var(--bad); }
+.bar { position: relative; height: 10px; background: var(--track); border-radius: 999px; }
+.fill { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: var(--good); }
+.fill.no { background: var(--bad); }
+.fill.acc { background: var(--accent); }
+.tick { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--ink); border-radius: 1px; }
+.entry { display: flex; gap: 8px; }
+.entry input, .fld input, .fld select { width: 100%; font-size: 1rem; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); font-variant-numeric: tabular-nums; min-width: 0; }
+.btn { border: 1px solid var(--line); background: var(--panel); border-radius: 10px; padding: 10px 16px; cursor: pointer; font-weight: 600; white-space: nowrap; }
+.btn.primary { background: var(--sel); color: var(--sel-ink); border-color: var(--sel); }
+.btn.small { padding: 5px 10px; font-size: 0.82rem; font-weight: 500; }
+.btn.ghost { border: 0; background: none; padding: 4px 0; color: var(--muted); font-weight: 500; font-size: 0.85rem; text-decoration: underline; }
+.weeks { display: flex; flex-direction: column; }
+.wk { display: flex; align-items: center; gap: 10px; padding: 9px 0; font-size: 0.9rem; }
+.wk + .wk { border-top: 1px solid var(--line); }
+.wk .d { flex: 1; color: var(--muted); }
+.wk .a { font-weight: 600; }
+.wk .mark { width: 22px; height: 22px; font-size: 0.75rem; }
+
+/* goal & levers */
+.goal-v { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.eta { font-size: 1.05rem; font-weight: 600; line-height: 1.35; }
+.lever { display: flex; flex-direction: column; gap: 2px; padding: 10px 0; }
+.lever + .lever { border-top: 1px solid var(--line); }
+.lever .top b { font-weight: 600; }
+.lever .gain { color: var(--good); font-weight: 600; font-size: 0.85rem; }
+
+/* model form */
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.fld { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; color: var(--muted); min-width: 0; }
+.fl { display: flex; flex-direction: column; }
+.fijo + .fijo { border-top: 1px solid var(--line); }
+.fijo summary { list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 11px 0; cursor: pointer; }
+.fijo summary::-webkit-details-marker { display: none; }
+.fijo summary::after { content: '›'; color: var(--muted); font-size: 1.2rem; transition: transform .15s; }
+.fijo[open] summary::after { transform: rotate(90deg); }
+.fn { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.fn b { font-weight: 600; } .fs { font-size: 0.8rem; color: var(--muted); }
+.chk { display: flex; gap: 10px; align-items: flex-start; font-size: 0.88rem; line-height: 1.35; cursor: pointer; }
+.chk input { width: 18px; height: 18px; margin: 1px 0 0; flex: none; accent-color: var(--ink); }
+.fa { font-size: 0.85rem; color: var(--muted); white-space: nowrap; }
+.fbody { display: flex; flex-direction: column; gap: 10px; padding: 2px 0 14px; }
+.fijo .meta { font-size: 0.8rem; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+.result { font-size: 1rem; font-weight: 600; line-height: 1.45; }
+
+.tabbar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--panel); border-top: 1px solid var(--line); display: flex; justify-content: center; gap: 4px; padding: 8px 16px calc(8px + env(safe-area-inset-bottom, 0px)); z-index: 3; }
+.tabbar button { flex: 1 1 0; max-width: 10rem; border: 0; background: none; padding: 9px; border-radius: 10px; font-weight: 600; font-size: 0.9rem; color: var(--muted); cursor: pointer; }
+.tabbar button[aria-selected="true"] { color: var(--ink); background: var(--track); }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(76px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 9px 14px; border-radius: 10px; font-size: 0.88rem; max-width: calc(100% - 32px); z-index: 4; }
+@media (prefers-reduced-motion: no-preference) { .fill { transition: width .35s ease-out; } }
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<nav class="tabbar" role="tablist" aria-label="Secciones">
+  <button role="tab" id="tab-hoy" data-tab="hoy" aria-selected="true">Hoy</button>
+  <button role="tab" id="tab-modelo" data-tab="modelo" aria-selected="false">Mi modelo</button>
+</nav>
+<div class="toast" id="toast" hidden></div>
+<script id="seed" type="application/json">{"modelo": {"ingresoMonto": 0, "ingresoFrecuencia": "Semanal", "ahorroPct": 0.2, "diaPago": 5, "fijos": [], "tarjetas": [], "deudaModo": "tarjeta"}}</script>
+<script>
+(() => {
+  'use strict';
+  // ---------------------------------------------------------- helpers
+  const $ = (s, el = document) => el.querySelector(s);
+  const h = (tag, attrs = {}, ...kids) => {
+    const el = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs || {})) {
+      if (v == null || v === false) continue;
+      if (k === 'class') el.className = v; else if (k.startsWith('on')) el.addEventListener(k.slice(2), v); else el.setAttribute(k, v === true ? '' : v);
+    }
+    for (const kid of kids.flat()) if (kid != null && kid !== false && kid !== '') el.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+    return el;
+  };
+  const fmt = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', maximumFractionDigits: 0 });
+  const money = (n) => fmt.format(Math.round(n || 0));
+  const MES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  const MESL = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  const corto = (d) => `${+d.slice(8)} ${MES[+d.slice(5, 7) - 1]}`;
+  const largo = (d) => `${+d.slice(8)} de ${MESL[+d.slice(5, 7) - 1]} de ${d.slice(0, 4)}`;
+  const mesAnio = (ym) => `${MESL[+ym.slice(5, 7) - 1]} ${ym.slice(0, 4)}`;
+  const addDays = (d, n) => { const t = new Date(d + 'T12:00:00Z'); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); };
+  const daysBetween = (a, b) => Math.round((new Date(b + 'T12:00:00Z') - new Date(a + 'T12:00:00Z')) / 864e5);
+  const today = () => { const t = new Date(); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; };
+  const lunes = (d) => { const k = (new Date(d + 'T12:00:00Z').getUTCDay() + 6) % 7; return addDays(d, -k); };
+  const toast = (m) => { const t = $('#toast'); t.textContent = m; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => { t.hidden = true; }, 2600); };
+
+  // ---------------------------------------------------------- model
+  // Times per year. Quincenal = paid the 15th and month-end (24); every two weeks is Catorcenal (26).
+  const FREQ = { Semanal: 52, Catorcenal: 26, Quincenal: 24, Mensual: 12, Bimestral: 6, Trimestral: 4, Semestral: 2, Anual: 1 };
+  const FREQ_TXT = { Semanal: 'cada semana', Catorcenal: 'cada 2 semanas', Quincenal: 'el 15 y fin de mes', Mensual: 'cada mes', Bimestral: 'cada 2 meses', Trimestral: 'cada 3 meses', Semestral: 'cada 6 meses', Anual: 'cada año' };
+  // Essential + end date = a payment plan you'll renew (stays in the plan). Discretionary + end date = it really ends.
+  const activo = (f, ym) => !(f.inicia && f.inicia > ym) && !(f.termina && f.tipo === 'discrecional' && f.termina < ym);
+  const CATS = {
+    'esencial-sin': { tag: 'Esencial', txt: 'Lo necesitas y no termina. Ej. gastos médicos, renta, servicios.' },
+    'esencial-con': { tag: 'Esencial con fin', txt: 'Lo necesitas; esta forma de pago termina pero lo vas a renovar, así que sigue contando en tu plan. Ej. seguro pagado a meses.' },
+    'discrecional-con': { tag: 'Discrecional con fin', txt: 'Lo elegiste y termina solo. Al terminar sale de tu plan y libera dinero. Ej. compra a meses, préstamo.' },
+    'discrecional-sin': { tag: 'Discrecional', txt: 'Lo elegiste y sigue hasta que lo canceles. Podrías quitarlo si lo necesitas. Ej. suscripciones.' },
+  };
+  const cat = (f) => `${f.tipo === 'discrecional' ? 'discrecional' : 'esencial'}-${f.termina ? 'con' : 'sin'}`;
+  function plan(m, ym) {
+    const ingreso = Number(m.ingresoMonto || 0) * (FREQ[m.ingresoFrecuencia] || 52) / 52;
+    const fijosAct = (m.fijos || []).filter((f) => activo(f, ym));
+    const fijos = fijosAct.reduce((a, f) => a + Number(f.monto || 0) * (FREQ[f.frecuencia] || 12) / 52, 0);
+    const bruta = ingreso - fijos;
+    const ahorro = ingreso * Number(m.ahorroPct || 0);
+    const sem = (f) => Number(f.monto || 0) * (FREQ[f.frecuencia] || 12) / 52;
+    const ahorroEnFijos = fijosAct.filter((f) => f.esAhorro).reduce((a, f) => a + sem(f), 0);
+    const discrecionales = fijosAct.filter((f) => f.tipo === 'discrecional').reduce((a, f) => a + sem(f), 0);
+    return { ingreso, fijos, bruta, ahorro, flexible: bruta - ahorro, pctFijos: ingreso ? fijos / ingreso : 0, ahorroEnFijos, discrecionales };
+  }
+
+  // ---------------------------------------------------------- state & storage (per-browser; the page works without it)
+  const seed = JSON.parse(document.getElementById('seed').textContent);
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem('mf.' + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem('mf.' + k, JSON.stringify(v)); } catch (e) { /* preview without storage */ } },
+  };
+  const S = { modelo: store.get('modelo', seed.modelo), metas: store.get('metas', null), abierta: null, pagos: store.get('pagos', {}), cierres: store.get('cierres', []), cierreSel: null, vista: store.get('vista', 'sem'), planVer: store.get('planVer', 'tabla') === 'cascada' ? 'cascada' : 'tabla', tab: 'hoy', editando: null, abierto: null, ultimoRespaldo: store.get('ultimoRespaldo', null) };
+  const save = (k) => store.set(k, S[k]);
+  if (!S.metas) {
+    S.metas = [];
+    const old = store.get('meta', null), ap = store.get('apartados', {});
+    if (old && old.nombre) {
+      const saldos = [{ fecha: old.desde || today(), saldo: Number(old.inicial || 0) }]; let acc = Number(old.inicial || 0);
+      for (const k of Object.keys(ap).sort()) if (k >= (old.desde || '')) { acc += Number(ap[k] || 0); saldos.push({ fecha: addDays(k, 7), saldo: acc }); }
+      S.metas.push({ id: 'm1', nombre: old.nombre, monto: old.monto || null, fecha: old.fecha || '', saldos: saldos.filter((x) => x.fecha <= today()) });
+    }
+    save('metas');
+  }
+  if ((S.modelo.fijos || []).length && S.modelo.fijos.every((f) => f.tipo == null)) {
+    for (const f of S.modelo.fijos) { const sd = (seed.modelo.fijos || []).find((x) => x.concepto === f.concepto); f.tipo = sd ? sd.tipo : f.deuda ? 'discrecional' : 'esencial'; if (sd && sd.esAhorro) f.esAhorro = true; delete f.deuda; }
+    save('modelo');
+  }
+
+  // ---------------------------------------------------------- charts (SVG drawn at the real width, redrawn on resize)
+  const NS = 'http://www.w3.org/2000/svg';
+  const sv = (tag, a = {}, txt) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(a)) if (v != null) e.setAttribute(k, v); if (txt != null) e.textContent = txt; return e; };
+  const kfmt = (v) => (Math.abs(v) >= 1000 ? `$${+(v / 1000).toFixed(1)}k` : money(v));
+  function mountChart(draw, cls, alto) {
+    const box = h('div', { class: `chartbox ${cls || ''}`, style: `height:${alto}px` });
+    let lastW = 0, pend = 0;
+    const ro = new ResizeObserver((entries) => {
+      const w = Math.round(entries[0].contentRect.width);
+      if (!w || w === lastW) return;
+      lastW = w; cancelAnimationFrame(pend);
+      pend = requestAnimationFrame(() => { if (box.isConnected) draw(box, w); });
+    });
+    ro.observe(box);
+    return box;
+  }
+
+  // Waterfall: Ingresos → − Fijos → = Utilidad bruta → − Flexibles → = Ahorro
+  function cascadaChart(P, f) {
+    return mountChart((box, W) => {
+      const items = [
+        { l: ['Ingresos'], v: P.ingreso, tot: true, c: 'var(--accent)' },
+        { l: ['Gastos', 'fijos'], v: -P.fijos, c: 'var(--bad)' },
+        { l: ['Utilidad', 'bruta'], v: P.bruta, tot: true, c: 'var(--accent)' },
+        { l: ['Gastos', 'flexibles'], v: -P.flexible, c: 'var(--bad)' },
+        { l: ['Ahorro'], v: P.ahorro, tot: true, c: 'var(--good)' },
+      ];
+      const H = 236, T = 34, B = 36, ph = H - T - B, n = items.length, band = W / n, bw = Math.min(56, band * 0.64);
+      const top = Math.max(P.ingreso, 1), Y = (v) => T + ph - Math.max(0, v) / top * ph;
+      const svg = sv('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': `Cascada: ingresos ${money(P.ingreso * f)}, menos fijos ${money(P.fijos * f)}, utilidad bruta ${money(P.bruta * f)}, menos flexibles ${money(P.flexible * f)}, ahorro ${money(P.ahorro * f)}` });
+      svg.append(sv('line', { x1: 0, x2: W, y1: Y(0), y2: Y(0), stroke: 'var(--line)' }));
+      let level = 0, prevTop = null;
+      items.forEach((it, i) => {
+        const x = band * i + (band - bw) / 2;
+        let a, b;
+        if (it.tot) { a = 0; b = it.v; level = it.v; } else { a = level + it.v; b = level; level = a; }
+        const yTop = Y(Math.max(a, b)), yBot = Y(Math.min(a, b)), hgt = Math.max(2, yBot - yTop), r = Math.min(5, bw / 2, hgt);
+        svg.append(sv('path', { d: `M${x} ${yTop + hgt}V${yTop + r}Q${x} ${yTop} ${x + r} ${yTop}H${x + bw - r}Q${x + bw} ${yTop} ${x + bw} ${yTop + r}V${yTop + hgt}Z`, fill: it.c }));
+        if (prevTop != null) svg.append(sv('line', { x1: band * (i - 1) + (band + bw) / 2, x2: x, y1: prevTop, y2: prevTop, stroke: 'var(--muted)', 'stroke-dasharray': '3 3', opacity: 0.6 }));
+        prevTop = it.tot ? Y(it.v) : Y(level);
+        const cx = band * i + band / 2;
+        svg.append(sv('text', { x: cx, y: yTop - 18, class: 'v', 'text-anchor': 'middle' }, `${it.tot ? '' : '−'}${money(Math.abs(it.v) * f)}`));
+        svg.append(sv('text', { x: cx, y: yTop - 5, class: 'p', 'text-anchor': 'middle' }, P.ingreso ? `${Math.round(Math.abs(it.v) / P.ingreso * 100)}%` : ''));
+        it.l.forEach((t, k) => svg.append(sv('text', { x: cx, y: H - B + 15 + k * 13, class: 'lab', 'text-anchor': 'middle' }, t)));
+      });
+      box.replaceChildren(svg);
+    }, 'cascada', 236);
+  }
+
+  // ---------------------------------------------------------- Rangos (no exact pass/fail: the plan is an intention, not a forecast)
+  const TOL = 0.10;
+  function rango(real, meta) {
+    const r = meta > 0 ? real / meta : real >= 0 ? 1 : 0;
+    if (r >= 1 + TOL) return { cls: 'ok', ico: '✓', txt: 'Arriba del plan' };
+    if (r >= 1 - TOL) return { cls: 'ok', ico: '✓', txt: 'En rango' };
+    if (r >= 0.7) return { cls: 'warn', ico: '≈', txt: 'Cerca del rango' };
+    return { cls: 'no', ico: '✕', txt: 'Fuera de rango' };
+  }
+  const markR = (g) => h('span', { class: `mark ${g.cls}`, 'aria-hidden': 'true' }, g.ico);
+
+  // ---------------------------------------------------------- Día de pago: págate primero
+  const DIAS_L = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+  const conDiaL = (d) => `${DIAS_L[new Date(d + 'T12:00:00Z').getUTCDay()]} ${corto(d)}`;
+  function diasDePago(m, desde, hasta) {
+    const out = [], fr = m.ingresoFrecuencia;
+    if (fr === 'Semanal') { for (let d = desde; d <= hasta; d = addDays(d, 1)) if (new Date(d + 'T12:00:00Z').getUTCDay() === Number(m.diaPago ?? 5)) out.push(d); }
+    else if (fr === 'Catorcenal') { const ref = m.refPago || desde; let d = ref; while (d > desde) d = addDays(d, -14); for (; d <= hasta; d = addDays(d, 14)) if (d >= desde) out.push(d); }
+    else if (fr === 'Quincenal') { for (let d = desde.slice(0, 8) + '01'; d <= hasta; d = addDays(monthEndOf(d.slice(0, 7)), 1)) { for (const x of [d.slice(0, 8) + '15', monthEndOf(d.slice(0, 7))]) if (x >= desde && x <= hasta) out.push(x); } }
+    else { const dia = Number(m.diaPago || 1); for (let d = desde.slice(0, 8) + '01'; d <= hasta; d = addDays(monthEndOf(d.slice(0, 7)), 1)) { const last = +monthEndOf(d.slice(0, 7)).slice(8); const x = d.slice(0, 8) + String(Math.min(dia, last)).padStart(2, '0'); if (x >= desde && x <= hasta) out.push(x); } }
+    return out;
+  }
+  const tipPago = () => h('p', { class: 'tip' }, h('b', {}, 'Tip: '), 'si programas una transferencia automática ese día en tu banco, no depende de que te acuerdes.');
+  function viewPago(P) {
+    const m = S.modelo, hoy = today();
+    const porPago = P.ahorro * 52 / (FREQ[m.ingresoFrecuencia] || 52);
+    const pasados = diasDePago(m, addDays(hoy, -70), hoy), proximo = diasDePago(m, addDays(hoy, 1), addDays(hoy, 40))[0];
+    const ult = pasados.at(-1);
+    const card = h('section', { class: 'card', id: 'pago' });
+    const pendiente = ult && S.pagos[ult] == null && daysBetween(ult, hoy) <= 14;
+    if (pendiente) {
+      const otra = h('input', { type: 'number', id: 'pago-in', inputmode: 'decimal', min: '0', step: 'any', placeholder: String(Math.round(porPago)), 'aria-label': 'Cuánto apartaste' });
+      const guardar = (v) => { S.pagos[ult] = v; save('pagos'); toast(v > 0 ? 'Listo. Eso es trabajar por tu patrimonio.' : 'Anotado. El siguiente pago es otra oportunidad.'); render(); };
+      card.append(h('div', { class: 'k' }, ult === hoy ? 'Hoy es día de pago' : `Tu pago del ${conDiaL(ult)}`),
+        h('div', { class: 'pago-q' }, `¿Ya apartaste ${money(porPago)} para tus metas?`),
+        h('p', { class: 'note' }, 'Primero apartas, luego gastas. Lo que apartes hoy es lo que construye tu patrimonio, no lo que sobre al final.'),
+        tipPago(),
+        h('div', { class: 'entry' }, h('button', { class: 'btn primary', onclick: () => guardar(porPago) }, `Sí, ${money(porPago)}`), h('button', { class: 'btn', onclick: () => guardar(0) }, 'No aparté')),
+        h('div', { class: 'entry' }, otra, h('button', { class: 'btn', onclick: () => { if (otra.value === '') { otra.focus(); return; } guardar(Number(otra.value)); } }, 'Otra cantidad')));
+    } else {
+      const v = ult ? S.pagos[ult] : null;
+      if (v != null) {
+        const g = rango(v, porPago);
+        card.append(h('div', { class: 'top' }, h('span', { class: 'k' }, 'Día de pago'), h('button', { class: 'btn ghost', onclick: () => { delete S.pagos[ult]; save('pagos'); render(); } }, 'Corregir')),
+          h('div', { class: 'verdict' }, markR(g), h('div', {}, h('b', { class: g.cls }, `${g.txt}.`), ` El ${conDiaL(ult)} apartaste ${money(v)} de ${money(porPago)}.`)));
+      } else card.append(h('div', { class: 'k' }, 'Día de pago'));
+      if (proximo) card.append(h('div', { class: 'pago-q' }, `Próximo: ${conDiaL(proximo)}`), h('p', { class: 'note' }, `Ese día aparta ${money(porPago)} antes de gastar. Te lo recuerdo aquí.`), tipPago());
+    }
+    // last paydays
+    const ult8 = pasados.slice(-8);
+    if (ult8.length) card.append(h('div', { class: 'dots', role: 'list', 'aria-label': 'Tus últimos días de pago' }, ult8.map((d) => {
+      const v = S.pagos[d], g = v == null ? { cls: 'na', ico: '·', txt: 'Sin registro' } : rango(v, porPago);
+      return h('div', { class: 'dot', role: 'listitem', title: `${corto(d)}: ${v == null ? 'sin registro' : money(v)}` }, h('span', { class: `mark ${g.cls}`, 'aria-label': g.txt }, g.ico), h('span', {}, corto(d).replace(' ', ' ')));
+    })));
+    return card;
+  }
+
+  // ---------------------------------------------------------- Hoy
+  function viewHoy() {
+    const hoy = today(), ym = hoy.slice(0, 7), P = plan(S.modelo, ym), sem = lunes(hoy);
+    const f = S.vista === 'mes' ? 52 / 12 : 1, per = S.vista === 'mes' ? 'al mes' : 'por semana';
+    const head = h('div', { class: 'head' }, h('span', { class: 'brand' }, 'Mental Finance'), h('span', { class: 'chip' }, `Semana del ${+sem.slice(8)} al ${corto(addDays(sem, 6))}`));
+
+    // 1) the plan, as a personal income statement
+    const sw = h('div', { class: 'switch', role: 'group', 'aria-label': 'Vista' }, [['sem', 'Semana'], ['mes', 'Mes']].map(([k, l]) => h('button', { type: 'button', 'aria-pressed': String(S.vista === k), onclick: () => { S.vista = k; save('vista'); render(); } }, l)));
+    const pct = (v) => h('span', { class: 'pct' }, v != null && P.ingreso ? `${Math.round(v / P.ingreso * 100)}%` : '');
+    const line = (cls, op, label, v, p) => h('div', { class: `cl ${cls}` }, h('span', {}, h('span', { class: 'op', 'aria-hidden': 'true' }, op), label), h('span', { class: 'amt' }, h('span', { class: 'num' }, money(v * f)), p));
+    const enFijos = (S.modelo.fijos || []).filter((x) => x.esAhorro && activo(x, ym)).map((x) => x.concepto).join(', ');
+    const ver = h('div', { class: 'seg2 seg3v', role: 'group', 'aria-label': 'Cómo ver tu plan' }, [['tabla', 'Tabla'], ['cascada', 'Cascada']].map(([k, l]) => h('button', { type: 'button', 'aria-pressed': String(S.planVer === k), onclick: () => { S.planVer = k; save('planVer'); render(); } }, l)));
+    const tabla = h('div', { class: 'cascade' },
+        line('', '', 'Ingresos netos', P.ingreso, pct(null)),
+        line('', '−', 'Gastos fijos', P.fijos, pct(P.fijos)),
+        line('sub', '=', 'Utilidad bruta', P.bruta, pct(P.bruta)),
+        line('flex', '−', 'Gastos flexibles', P.flexible, pct(P.flexible)),
+        line('goal', '=', 'Ahorro e inversión', P.ahorro, pct(P.ahorro)),
+        P.ahorroEnFijos > 0.5 ? h('div', { class: 'cl extra' }, h('span', {}, h('span', { class: 'op' }, '+'), `${enFijos || 'Ahorro'} (ya restado en tus fijos)`), h('span', { class: 'amt' }, h('span', { class: 'num' }, money(P.ahorroEnFijos * f)), pct(P.ahorroEnFijos))) : null,
+        P.ahorroEnFijos > 0.5 ? h('div', { class: 'cl goal total' }, h('span', {}, h('span', { class: 'op' }, '='), 'Ahorro total'), h('span', { class: 'amt' }, h('span', { class: 'num' }, money((P.ahorro + P.ahorroEnFijos) * f)), pct(P.ahorro + P.ahorroEnFijos))) : null);
+    const vis = S.planVer === 'cascada' ? cascadaChart(P, f) : tabla;
+    const cascade = h('section', { class: 'card', id: 'plan' }, h('div', { class: 'top' }, h('h2', {}, 'Tu plan'), sw), ver, vis,
+      S.planVer === 'cascada' && P.ahorroEnFijos > 0.5 ? h('p', { class: 'note' }, `Además, ${money(P.ahorroEnFijos * f)} de ${enFijos} ya van dentro de tus fijos: ahorro total ${money((P.ahorro + P.ahorroEnFijos) * f)} (${Math.round((P.ahorro + P.ahorroEnFijos) / P.ingreso * 100)}%).`) : null,
+      h('div', { class: 'principio' }, h('b', {}, 'Tu plan es una intención, no un pronóstico.'), ' El patrimonio no se crea con lo que sobra, sino con lo que apartas primero. Los montos son estimaciones con tus datos de Mi modelo. No necesitas registrar cada gasto ni que las cifras cuadren exactas: lo importante es mantenerte dentro de los rangos.'),
+      P.flexible < 0 ? h('p', { class: 'note', style: 'color:var(--bad)' }, `Tus fijos y tu ${Math.round(S.modelo.ahorroPct * 100)}% de ahorro suman más que tu ingreso: baja algún fijo o el porcentaje en Mi modelo.`) : null);
+
+    if (!(Number(S.modelo.ingresoMonto) > 0)) return [head, h('section', { class: 'card', id: 'bienvenida' }, h('h2', {}, 'Empieza con tu modelo'),
+      h('p', { class: 'note' }, 'Captura tu ingreso, tu % de ahorro y tus gastos fijos en Mi modelo. Con eso calculo cuánto puedes gastar y cuánto apartar cada día de pago.'),
+      h('p', { class: 'note' }, 'Si ya tienes un respaldo, impórtalo en Mi modelo → Respaldo.'),
+      h('div', { class: 'entry' }, h('button', { class: 'btn primary', onclick: () => go('modelo') }, 'Ir a Mi modelo')))];
+    return [head, viewPago(P), cascade, viewMetas(P), viewCierre(P), viewPalancas(P, ym)];
+  }
+  // ---------------------------------------------------------- Metas: progress by balance (you update each goal's balance when you want)
+  const ultimo = (m) => m.saldos[m.saldos.length - 1];
+  // weekly pace from the balances of the last ~8 weeks (includes returns and withdrawals)
+  function ritmoMeta(m) {
+    const ss = m.saldos;
+    if (ss.length < 2) return null;
+    const last = ss.at(-1), lim = addDays(last.fecha, -56);
+    let base = ss[0];
+    for (const x of ss) if (x.fecha <= lim) base = x;
+    const sem = daysBetween(base.fecha, last.fecha) / 7;
+    if (sem < 1) return null;
+    return { v: (last.saldo - base.saldo) / sem, sem };
+  }
+  const periodos = (sem) => {
+    if (S.vista === 'mes') { const m = Math.max(1, Math.round(sem * 12 / 52)); return `${m} ${m === 1 ? 'mes' : 'meses'}`; }
+    return `${sem} ${sem === 1 ? 'semana' : 'semanas'}`;
+  };
+  const hace = (d) => { const n = daysBetween(d, today()); return n <= 0 ? 'hoy' : n === 1 ? 'ayer' : `hace ${n} días`; };
+
+  function viewMetas(P) {
+    const metas = S.metas, f = S.vista === 'mes' ? 52 / 12 : 1, per = S.vista === 'mes' ? 'al mes' : 'por semana';
+    const total = metas.reduce((a, m) => a + ultimo(m).saldo, 0);
+    const card = h('section', { class: 'card', id: 'metas' }, h('div', { class: 'top' }, h('h2', {}, 'Tus metas'), metas.length ? h('span', { class: 'goal num' }, `Total ${money(total)}`) : null));
+    if (!metas.length && S.editando !== 'nueva') {
+      card.append(h('p', { class: 'note' }, 'Crea una meta por cada cosa para la que ahorras (fondo de emergencia, viaje, inversión). Cuando quieras, actualizas su saldo y te digo a qué ritmo vas y cuándo llegas.'),
+        h('button', { class: 'btn primary', onclick: () => { S.editando = 'nueva'; render(); } }, '+ Agregar meta'));
+      return card;
+    }
+    if (metas.length) {
+      const rs = metas.map(ritmoMeta), con = rs.filter(Boolean);
+      if (con.length) {
+        const v = con.reduce((a, r) => a + r.v, 0), g = rango(v, P.ahorro);
+        card.append(h('div', { class: 'verdict', id: 'ritmo' }, markR(g),
+          h('div', {}, h('b', { class: g.cls }, `${g.txt}:`), ` tus metas crecen ${money(v * f)} ${per} contra ${money(P.ahorro * f)} de tu plan.`,
+            h('div', { class: 'note' }, `Con los saldos de tus últimas semanas; incluye rendimientos y retiros.${con.length < metas.length ? ` ${metas.length - con.length} ${metas.length - con.length === 1 ? 'meta aún no tiene' : 'metas aún no tienen'} ritmo.` : ''}`))));
+      } else card.append(h('p', { class: 'note', id: 'ritmo' }, 'Vuelve a actualizar los saldos en una semana o más y te digo a qué ritmo ahorras contra tu plan.'));
+      const viejo = metas.map((m) => ultimo(m).fecha).sort()[0];
+      if (daysBetween(viejo, today()) >= 14) card.append(h('p', { class: 'note', style: 'color:var(--bad)' }, `Tu saldo más viejo es de ${hace(viejo)}. Actualízalo para que tu avance no se quede atrás.`));
+    }
+    card.append(h('div', { class: 'mlist' }, metas.map((m) => metaRow(m, P))));
+    card.append(S.editando === 'nueva' ? metaForm(null) : h('button', { class: 'btn', onclick: () => { S.editando = 'nueva'; render(); } }, '+ Agregar meta'));
+    return card;
+  }
+
+  function metaRow(m, P) {
+    const u = ultimo(m), r = ritmoMeta(m), falta = m.monto ? Math.max(0, m.monto - u.saldo) : null;
+    let sub;
+    if (m.monto && !falta) sub = '¡Meta cumplida!';
+    else if (m.monto && r && r.v > 0) sub = `Quedan ~${periodos(Math.ceil(falta / r.v))}`;
+    else if (m.monto && r) sub = 'Tu saldo no ha crecido';
+    else if (m.monto) sub = `Faltan ${money(falta)}`;
+    else sub = r ? `Crece ${money(r.v)} por semana` : 'Sin objetivo';
+    const sumario = h('summary', {},
+      h('div', { class: 'top' }, h('b', {}, m.nombre), h('span', { class: 'num' }, money(u.saldo), m.monto ? h('span', { class: 'note' }, ` de ${money(m.monto)}`) : null)),
+      m.monto ? h('div', { class: 'bar', style: 'height:8px;margin:6px 0 4px' }, h('div', { class: 'fill acc', style: `width:${Math.min(100, u.saldo / m.monto * 100).toFixed(1)}%` })) : null,
+      h('div', { class: 'msub' }, h('span', { class: 'eta-s' }, sub), h('span', {}, `Saldo de ${hace(u.fecha)}`)));
+    const d = h('details', { class: 'meta', id: `meta-${m.id}`, open: S.abierta === m.id ? true : null, ontoggle: (e) => { if (e.target.open) S.abierta = m.id; else if (S.abierta === m.id) S.abierta = null; } }, sumario);
+    if (S.editando === m.id) { d.append(metaForm(m)); return d; }
+    const body = h('div', { class: 'mbody' });
+    if (m.monto && falta && r && r.v > 0) body.append(h('div', { class: 'eta' }, `A tu ritmo llegas en ${mesAnio(addDays(u.fecha, Math.ceil(falta / r.v) * 7))}`), h('p', { class: 'note', style: 'margin-top:-6px' }, `Ritmo: ${money(r.v)} por semana · te faltan ${money(falta)}`));
+    if (m.monto && falta && m.fecha && m.fecha > today()) {
+      const sems = Math.max(1, Math.ceil(daysBetween(today(), m.fecha) / 7)), nec = falta / sems, g = r ? rango(r.v, nec) : null;
+      body.append(h('div', { class: 'verdict' }, g ? markR(g) : null,
+        h('div', {}, `Para el ${largo(m.fecha)} necesitas ${money(nec)} por semana. `, g ? h('b', { class: g.cls }, g.cls === 'ok' ? 'Vas a tiempo.' : g.cls === 'warn' ? `Casi: te faltan ${money(nec - r.v)} por semana.` : `Te faltan ${money(nec - r.v)} por semana.`) : '')));
+    }
+    body.append(...metaChart(m, r));
+    // update balance
+    const inp = h('input', { type: 'number', inputmode: 'decimal', min: '0', step: 'any', placeholder: String(Math.round(u.saldo)), 'aria-label': `Saldo de hoy de ${m.nombre}`, class: 'upd-in' });
+    const actualizar = () => {
+      if (inp.value === '' || Number(inp.value) < 0) { toast('Escribe el saldo que tienes hoy para esta meta.'); inp.focus(); return; }
+      const hoy = today(); m.saldos = m.saldos.filter((x) => x.fecha !== hoy).concat({ fecha: hoy, saldo: Number(inp.value) }).sort((a, b) => a.fecha.localeCompare(b.fecha));
+      S.abierta = m.id; save('metas'); toast('Saldo actualizado.'); render();
+    };
+    inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') actualizar(); });
+    body.append(h('div', { class: 'fld' }, '¿Cuánto tienes hoy en esta meta?', h('div', { class: 'entry' }, inp, h('button', { class: 'btn primary', onclick: actualizar }, 'Actualizar'))));
+    const hist = m.saldos.slice(-4).reverse();
+    body.append(h('div', { class: 'hist note num' }, hist.map((x) => h('div', {}, `${corto(x.fecha)} ${x.fecha.slice(0, 4)}: ${money(x.saldo)}`))));
+    let armado = false;
+    const borrar = h('button', { class: 'btn ghost', onclick: () => { if (!armado) { armado = true; borrar.textContent = '¿Seguro? Toca otra vez para borrar'; return; } S.metas = S.metas.filter((x) => x !== m); save('metas'); render(); } }, 'Borrar meta');
+    body.append(h('div', { class: 'inline', style: 'gap:16px' },
+      h('button', { class: 'btn ghost', onclick: () => { S.editando = m.id; S.abierta = m.id; render(); } }, 'Editar'),
+      m.saldos.length > 1 ? h('button', { class: 'btn ghost', onclick: () => { m.saldos.pop(); save('metas'); render(); } }, 'Quitar último saldo') : null, borrar));
+    d.append(body);
+    return d;
+  }
+
+  function metaForm(m) {
+    const n = h('input', { type: 'text', id: 'mf-n', placeholder: 'Ej. Fondo de emergencia', value: m ? m.nombre : null });
+    const o = h('input', { type: 'number', id: 'mf-o', inputmode: 'decimal', min: '0', placeholder: 'Opcional', value: m && m.monto ? String(m.monto) : null });
+    const s0 = h('input', { type: 'number', id: 'mf-s', inputmode: 'decimal', min: '0', placeholder: '0' });
+    const fch = h('input', { type: 'date', id: 'mf-f', value: m ? m.fecha || null : null });
+    const ok = () => {
+      if (!n.value.trim()) { toast('Ponle nombre a tu meta.'); n.focus(); return; }
+      const monto = Number(o.value) > 0 ? Number(o.value) : null;
+      if (m) { m.nombre = n.value.trim(); m.monto = monto; m.fecha = fch.value || ''; }
+      else S.metas.push({ id: Math.random().toString(36).slice(2, 9), nombre: n.value.trim(), monto, fecha: fch.value || '', saldos: [{ fecha: today(), saldo: Number(s0.value || 0) }] });
+      S.editando = null; save('metas'); render();
+    };
+    return h('div', { class: 'mform' }, h('label', { class: 'fld' }, 'Nombre', n),
+      h('div', { class: 'grid2' }, h('label', { class: 'fld' }, '¿Cuánto necesitas?', o), m ? h('label', { class: 'fld' }, '¿Para cuándo?', fch) : h('label', { class: 'fld' }, '¿Cuánto tienes hoy?', s0)),
+      m ? null : h('label', { class: 'fld' }, '¿Para cuándo? (opcional)', fch),
+      h('p', { class: 'note' }, 'Sin monto objetivo la meta solo sigue tu saldo, útil para inversión de largo plazo.'),
+      h('div', { class: 'entry' }, h('button', { class: 'btn primary', onclick: ok }, m ? 'Guardar' : 'Crear meta'), h('button', { class: 'btn', onclick: () => { S.editando = null; render(); } }, 'Cancelar')));
+  }
+
+  // Balance over time vs the goal, the route to your date and the projection at your pace
+  function metaChart(m, r) {
+    const caption = h('div', { class: 'note num scrub', style: 'min-height:1.3em' });
+    const box = mountChart((el, W) => {
+      const ss = m.saldos, d0 = ss[0].fecha, ix = (d) => daysBetween(d0, d) / 7;
+      const last = ss.at(-1), lastIdx = ix(last.fecha), falta = m.monto ? Math.max(0, m.monto - last.saldo) : 0;
+      const arr = m.monto && falta && r && r.v > 0 ? lastIdx + falta / r.v : null;
+      const rutaEnd = m.monto && m.fecha ? ix(m.fecha) : null;
+      const maxIdx = Math.min(260, Math.max(lastIdx + 4, ix(today()) + 1, arr || 0, rutaEnd || 0) * 1.04);
+      const hiS = Math.max(...ss.map((x) => x.saldo), 1), loS = Math.min(...ss.map((x) => x.saldo));
+      const ymax = (m.monto || hiS * 1.08) * 1.04;
+      // without a target the line is what matters: start the axis near the lowest balance so growth is visible
+      const ymin = m.monto ? 0 : Math.max(0, Math.floor(loS * 0.92 / 1000) * 1000);
+      const H = 200, T = 14, B = 24, L = 4, RG = 44, pw = W - L - RG, ph = H - T - B;
+      const X = (i) => L + Math.max(0, Math.min(i, maxIdx)) / maxIdx * pw, Y = (v) => T + ph - (Math.max(ymin, Math.min(v, ymax)) - ymin) / (ymax - ymin || 1) * ph;
+      const svg = sv('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': `Saldo de ${m.nombre}: ${money(last.saldo)}${m.monto ? ` de ${money(m.monto)}` : ''}` });
+      [ymin, ymin + (ymax / 1.04 - ymin) / 2].forEach((v) => { svg.append(sv('line', { x1: L, x2: L + pw, y1: Y(v), y2: Y(v), stroke: 'var(--line)' })); svg.append(sv('text', { x: W - 2, y: Y(v) + 4, class: 'tk', 'text-anchor': 'end' }, kfmt(v))); });
+      if (m.monto) {
+        svg.append(sv('line', { x1: L, x2: L + pw, y1: Y(m.monto), y2: Y(m.monto), stroke: 'var(--ink)', 'stroke-width': 1.5, 'stroke-dasharray': '5 4', opacity: 0.75 }));
+        svg.append(sv('text', { x: W - 2, y: Y(m.monto) + 4, class: 'tk goal-t', 'text-anchor': 'end' }, kfmt(m.monto)));
+      } else svg.append(sv('text', { x: W - 2, y: Y(ymax / 1.04) + 4, class: 'tk', 'text-anchor': 'end' }, kfmt(ymax / 1.04)));
+      if (rutaEnd != null && rutaEnd > 0) { svg.append(sv('line', { x1: X(0), y1: Y(ss[0].saldo), x2: X(rutaEnd), y2: Y(m.monto), stroke: 'var(--muted)', 'stroke-width': 1.5, 'stroke-dasharray': '2 4', 'stroke-linecap': 'round' })); svg.append(sv('circle', { cx: X(rutaEnd), cy: Y(m.monto), r: 3.5, fill: 'var(--muted)' })); }
+      if (arr != null) svg.append(sv('line', { x1: X(lastIdx), y1: Y(last.saldo), x2: X(arr), y2: Y(m.monto), stroke: 'var(--accent)', 'stroke-width': 2, 'stroke-dasharray': '6 5', opacity: 0.8 }));
+      const lineD = ss.map((x, k) => `${k ? 'L' : 'M'}${X(ix(x.fecha)).toFixed(1)} ${Y(x.saldo).toFixed(1)}`).join('');
+      svg.append(sv('path', { d: `${lineD}L${X(lastIdx).toFixed(1)} ${Y(ymin)}L${X(0)} ${Y(ymin)}Z`, fill: 'var(--accent)', opacity: 0.12 }));
+      svg.append(sv('path', { d: lineD, fill: 'none', stroke: 'var(--accent)', 'stroke-width': 2.5, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+      ss.forEach((x, k) => svg.append(sv('circle', { cx: X(ix(x.fecha)), cy: Y(x.saldo), r: k === ss.length - 1 ? 5 : 3.5, fill: 'var(--accent)', stroke: 'var(--panel)', 'stroke-width': 2 })));
+      const mm = (i) => { const d = addDays(d0, Math.round(i * 7)); return `${MES[+d.slice(5, 7) - 1]} ${d.slice(2, 4)}`; };
+      const shown = [];
+      const tryLab = (i, anchor) => { const x = X(i); if (shown.every((s) => Math.abs(s - x) > 56)) { svg.append(sv('text', { x: Math.min(Math.max(x, 18), L + pw - 18), y: H - 6, class: 'tk', 'text-anchor': anchor || 'middle' }, mm(i))); shown.push(x); } };
+      tryLab(0, 'start'); if (arr != null) tryLab(arr); if (rutaEnd != null) tryLab(rutaEnd); tryLab(lastIdx);
+      // scrub
+      const hit = sv('rect', { x: L, y: 0, width: pw, height: H, fill: 'transparent', style: 'cursor:crosshair' });
+      const cur = sv('line', { y1: T, y2: T + ph, stroke: 'var(--ink)', opacity: 0 });
+      const show = (ev) => {
+        const b = svg.getBoundingClientRect(), i = Math.max(0, (ev.clientX - b.left - L) / pw * maxIdx), d = addDays(d0, Math.round(i * 7));
+        let v, t;
+        if (i <= lastIdx) { let k = 0; while (k < ss.length - 1 && ix(ss[k + 1].fecha) < i) k++; const a = ss[k], c = ss[Math.min(k + 1, ss.length - 1)]; const ia = ix(a.fecha), ic = ix(c.fecha); v = ic > ia ? a.saldo + (c.saldo - a.saldo) * (i - ia) / (ic - ia) : a.saldo; t = 'tenías ~'; }
+        else if (r && r.v) { v = Math.min(m.monto || Infinity, last.saldo + r.v * (i - lastIdx)); t = 'a tu ritmo tendrías ~'; } else { caption.textContent = ''; return; }
+        cur.setAttribute('x1', X(i)); cur.setAttribute('x2', X(i)); cur.setAttribute('opacity', 0.3);
+        caption.textContent = `${corto(d)} ${d.slice(0, 4)}: ${t}${money(v)}`;
+      };
+      hit.addEventListener('pointermove', show); hit.addEventListener('pointerdown', show);
+      hit.addEventListener('pointerleave', () => { cur.setAttribute('opacity', 0); caption.textContent = ''; });
+      svg.append(cur, hit);
+      el.replaceChildren(svg);
+    }, 'metachart', 200);
+    const legend = h('div', { class: 'legend' },
+      h('span', {}, h('i', { style: 'border-color:var(--accent);border-top-width:3px' }), 'Tu saldo'),
+      m.monto && r && r.v > 0 ? h('span', {}, h('i', { style: 'border-color:var(--accent);border-top-style:dashed' }), 'A tu ritmo') : '',
+      m.monto && m.fecha ? h('span', {}, h('i', { style: 'border-color:var(--muted);border-top-style:dotted' }), 'Para llegar a tiempo') : '',
+      m.monto ? h('span', {}, h('i', { style: 'border-color:var(--ink);border-top-style:dashed' }), 'Meta') : '');
+    return [caption, box, legend];
+  }
+
+  // ---------------------------------------------------------- Cierre del mes: conciliación plan → flujo → patrimonio
+  // Ahorro trabajado = saldos de metas − deuda de tarjetas (deuda total − lo que falta de tus compras a meses registradas)
+  const mesesEntre = (a, b) => (+b.slice(0, 4) - +a.slice(0, 4)) * 12 + (+b.slice(5, 7) - +a.slice(5, 7));
+  function msiPendiente(fecha) {
+    const ym = fecha.slice(0, 7);
+    return (S.modelo.fijos || []).filter((f) => f.termina && f.termina > ym && !(f.inicia && f.inicia > ym)).reduce((a, f) => {
+      const mensual = Number(f.monto || 0) * (FREQ[f.frecuencia] || 12) / 12;
+      return a + mensual * mesesEntre(ym, f.termina);
+    }, 0);
+  }
+  const sumaMetas = (c) => Object.values(c.metas).reduce((a, v) => a + v, 0);
+  // recomputed with your current fixed costs: registering a purchase later also fixes past closes
+  const deudaConsumo = (c) => c.deuda - msiPendiente(c.fecha);
+  function puente(a, b) {
+    const comunes = Object.keys(b.metas).filter((id) => a.metas[id] != null);
+    const nuevas = Object.keys(b.metas).filter((id) => a.metas[id] == null).reduce((s, id) => s + b.metas[id], 0);
+    const quitadas = Object.keys(a.metas).filter((id) => b.metas[id] == null).reduce((s, id) => s + a.metas[id], 0);
+    const dMetas = comunes.reduce((s, id) => s + b.metas[id] - a.metas[id], 0);
+    const apartado = Object.entries(S.pagos).filter(([d]) => d > a.fecha && d <= b.fecha).reduce((s, [, v]) => s + v, 0);
+    const otros = dMetas - apartado;
+    const dDeuda = deudaConsumo(b) - deudaConsumo(a);
+    const pIni = sumaMetas(a) - deudaConsumo(a), pFin = sumaMetas(b) - deudaConsumo(b);
+    const semanas = daysBetween(a.fecha, b.fecha) / 7;
+    return { a, b, apartado, otros, dDeuda, nuevas, quitadas, pIni, pFin, semanas };
+  }
+
+  // generic bridge (waterfall) with a baseline near the smallest level, so changes are visible
+  function puenteChart(items) {
+    return mountChart((box, W) => {
+      let lvl = 0; const lv = [];
+      for (const it of items) { if (it.tot) lvl = it.v; else lvl += it.v; lv.push(lvl); }
+      const hi = Math.max(...lv, ...items.filter((i) => i.tot).map((i) => i.v)) * 1.02;
+      const minL = Math.min(...lv);
+      const lo = minL > 0 ? Math.max(0, minL - (hi - minL) * 0.9) : Math.min(0, minL * 1.1);
+      const H = 236, T = 34, B = 36, ph = H - T - B, n = items.length, band = W / n, bw = Math.min(52, band * 0.62);
+      const Y = (v) => T + ph - (Math.max(lo, v) - lo) / (hi - lo || 1) * ph;
+      const svg = sv('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': items.map((i) => `${i.l.join(' ')} ${money(i.v)}`).join(', ') });
+      svg.append(sv('line', { x1: 0, x2: W, y1: T + ph, y2: T + ph, stroke: 'var(--line)' }));
+      let level = 0, prevTop = null;
+      items.forEach((it, i) => {
+        const x = band * i + (band - bw) / 2;
+        let a, b;
+        if (it.tot) { a = lo; b = it.v; level = it.v; } else { a = level; b = level + it.v; level = b; }
+        const yTop = Y(Math.max(a, b)), yBot = Y(Math.min(a, b)), hgt = Math.max(2, yBot - yTop), r = Math.min(4, bw / 2, hgt / 2);
+        svg.append(sv('path', { d: `M${x} ${yTop + hgt}V${yTop + r}Q${x} ${yTop} ${x + r} ${yTop}H${x + bw - r}Q${x + bw} ${yTop} ${x + bw} ${yTop + r}V${yTop + hgt - (it.tot ? 0 : r)}${it.tot ? '' : `Q${x + bw} ${yTop + hgt} ${x + bw - r} ${yTop + hgt}H${x + r}Q${x} ${yTop + hgt} ${x} ${yTop + hgt - r}`}Z`, fill: it.c }));
+        if (prevTop != null) svg.append(sv('line', { x1: band * (i - 1) + (band + bw) / 2, x2: x, y1: prevTop, y2: prevTop, stroke: 'var(--muted)', 'stroke-dasharray': '3 3', opacity: 0.6 }));
+        prevTop = Y(level);
+        const cx = band * i + band / 2;
+        svg.append(sv('text', { x: cx, y: yTop - 8, class: 'v', 'text-anchor': 'middle' }, it.tot ? money(it.v) : `${it.v < 0 ? '−' : '+'}${money(Math.abs(it.v))}`));
+        it.l.forEach((t, k) => svg.append(sv('text', { x: cx, y: H - B + 15 + k * 13, class: 'lab', 'text-anchor': 'middle' }, t)));
+      });
+      box.replaceChildren(svg);
+    }, 'puente', 236);
+  }
+
+  const nombreTarjeta = (id) => ((S.modelo.tarjetas || []).find((t) => t.id === id) || { nombre: 'Tarjeta' }).nombre;
+  function porTarjeta(pz) {
+    const a = pz.a.detalle, b = pz.b.detalle;
+    if (!a || !b) return null;
+    const ds = Object.keys(b).filter((id) => a[id] != null).map((id) => [id, b[id] - a[id]]).filter(([, d]) => Math.abs(d) >= 1).sort((x, y) => Math.abs(y[1]) - Math.abs(x[1]));
+    if (!ds.length) return null;
+    return h('div', { class: 'note', style: 'margin:-4px 0 0 38px' }, 'Cambio por tarjeta, incluyendo compras a meses: ', ds.map(([id, d]) => `${nombreTarjeta(id)} ${d > 0 ? '+' : '−'}${money(Math.abs(d))}`).join(' · '));
+  }
+  function viewCierre(P) {
+    const card = h('section', { class: 'card', id: 'cierre' }, h('h2', {}, 'Cierre del mes'));
+    if (!S.metas.length) { card.append(h('p', { class: 'note' }, 'Crea al menos una meta para hacer tu cierre.')); return card; }
+    const cs = S.cierres, ult = cs.at(-1), hoy = today();
+    if (S.editando === 'cierre') { card.append(cierreForm(P)); return card; }
+    // a close done in the first days of a month counts for the previous month
+    const mesDe = (d) => (+d.slice(8) <= 10 ? addDays(d.slice(0, 8) + '01', -1) : d).slice(0, 7);
+    const mesPrevio = addDays(hoy.slice(0, 8) + '01', -1).slice(0, 7);
+    const debeCerrar = !ult || mesDe(ult.fecha) < mesPrevio;
+    const btn = h('button', { class: debeCerrar ? 'btn primary' : 'btn ghost', onclick: () => { S.editando = 'cierre'; render(); } },
+      !ult ? 'Hacer mi primer cierre' : debeCerrar ? `Cerrar ${MESL[+mesPrevio.slice(5, 7) - 1]}` : 'Hacer otro cierre');
+    if (!ult) {
+      card.append(h('p', { class: 'note' }, 'Una vez al mes: actualizas el saldo de tus metas y cuánto debes en tus tarjetas. Con eso reviso si lo que apartaste se convirtió en ahorro trabajado.'), btn);
+      return card;
+    }
+    if (cs.length === 1) {
+      card.append(h('div', { class: 'verdict' }, h('span', { class: 'mark na', 'aria-hidden': 'true' }, '·'),
+        h('div', {}, h('b', {}, `Punto de partida: ${largo(ult.fecha)}.`), ` Ahorro trabajado: ${money(sumaMetas(ult) - deudaConsumo(ult))}. Tu primer puente se arma en tu siguiente cierre.`)), btn);
+      return card;
+    }
+    const sel = S.cierreSel != null && S.cierreSel >= 1 && S.cierreSel < cs.length ? S.cierreSel : cs.length - 1;
+    const pz = puente(cs[sel - 1], cs[sel]);
+    const esUltimo = sel === cs.length - 1;
+    const tol = Math.max(200, pz.apartado * 0.05);
+    const planPeriodo = P.ahorro * pz.semanas, dPat = pz.pFin - pz.pIni, g = rango(dPat, planPeriodo);
+    card.append(h('p', { class: 'note', style: 'margin-top:-6px' }, `Del ${corto(pz.a.fecha)} al ${corto(pz.b.fecha)} ${pz.b.fecha.slice(0, 4)}${esUltimo ? '' : ' · cierre anterior'}`),
+      h('div', { class: 'verdict' }, markR(g), h('div', {}, h('b', { class: g.cls }, `Tu ahorro trabajado ${dPat >= 0 ? 'creció' : 'bajó'} ${money(Math.abs(dPat))}.`), ` Tu plan para ese periodo: ${money(planPeriodo)}.`)));
+    const items = [{ l: ['Al inicio'], v: pz.pIni, tot: true, c: 'var(--accent)' }, { l: ['Apartaste'], v: pz.apartado, c: 'var(--good)' }];
+    if (Math.abs(pz.otros) >= 1) items.push({ l: ['Diferencia', 'en metas'], v: pz.otros, c: pz.otros >= 0 ? 'var(--good)' : 'var(--warn)' });
+    if (Math.abs(pz.dDeuda) >= 1) items.push({ l: [pz.dDeuda > 0 ? 'Más' : 'Menos', 'deuda'], v: -pz.dDeuda, c: pz.dDeuda > 0 ? 'var(--bad)' : 'var(--good)' });
+    if (Math.abs(pz.nuevas - pz.quitadas) >= 1) items.push({ l: ['Metas', 'nuevas'], v: pz.nuevas - pz.quitadas, c: 'var(--muted)' });
+    items.push({ l: ['Al cierre'], v: pz.pFin, tot: true, c: 'var(--accent)' });
+    card.append(puenteChart(items));
+    // 1) does what you set aside match how much your goals grew?
+    if (Math.abs(pz.otros) <= tol) card.append(h('div', { class: 'verdict' }, markR({ cls: 'ok', ico: '✓' }), h('div', {}, h('b', { class: 'ok' }, 'Cuadra.'), ` Tus metas crecieron lo que apartaste (${money(pz.apartado)}).`)));
+    else if (cs[sel].explica) card.append(h('div', { class: 'verdict' }, markR({ cls: 'ok', ico: '✓' }), h('div', {}, h('b', {}, 'Explicado: '), `${cs[sel].explica} (${pz.otros >= 0 ? '+' : '−'}${money(Math.abs(pz.otros))}).`, ' ', h('button', { class: 'btn ghost', onclick: () => { delete cs[sel].explica; save('cierres'); render(); } }, 'Cambiar'))));
+    else {
+      const ops = pz.otros >= 0 ? ['Rendimientos de mis inversiones', 'Metí dinero que no anoté como apartado', 'Error en algún saldo'] : ['Saqué dinero de una meta', 'Bajó el valor de mi inversión', 'Aparté menos de lo que anoté', 'Error en algún saldo'];
+      card.append(h('div', { class: 'ask' }, h('div', { class: 'verdict' }, markR({ cls: 'warn', ico: '?' }),
+        h('div', {}, h('b', { class: 'warn' }, `Apartaste ${money(pz.apartado)}, pero tus metas ${pz.otros + pz.apartado >= 0 ? 'crecieron' : 'bajaron'} ${money(Math.abs(pz.otros + pz.apartado))}.`), ` ¿Qué explica la diferencia de ${money(Math.abs(pz.otros))}?`)),
+        h('div', { class: 'opts' }, ops.concat('No sé').map((o) => h('button', { class: 'btn small', onclick: () => { cs[sel].explica = o; save('cierres'); render(); } }, o)))));
+    }
+    // 2) consumer debt: the blind spot
+    const tolD = Math.max(300, P.ingreso * 52 / 12 * 0.02);
+    if (pz.dDeuda > tolD) card.append(h('div', { class: 'verdict' }, markR({ cls: 'no', ico: '!' }), h('div', {}, h('b', { class: 'no' }, `Tu deuda de tarjetas subió ${money(pz.dDeuda)}.`), ' Gastaste con tarjeta más de lo que pagaste: es dinero prestado de los próximos meses y le resta a tu ahorro trabajado. Si fue una compra a meses, regístrala en Mi modelo con su fecha de fin.')));
+    else if (pz.dDeuda < -tolD) card.append(h('div', { class: 'verdict' }, markR({ cls: 'ok', ico: '✓' }), h('div', {}, h('b', { class: 'ok' }, `Bajaste tu deuda de tarjetas ${money(-pz.dDeuda)}.`), ' Deber menos también es avanzar; suma a tu ahorro trabajado.')));
+    else card.append(h('div', { class: 'verdict' }, markR({ cls: 'ok', ico: '✓' }), h('div', {}, h('b', { class: 'ok' }, 'Tu deuda de tarjetas se mantuvo.'), ` ${money(deudaConsumo(cs[sel]))}, sin contar ${money(msiPendiente(cs[sel].fecha))} de compras a meses.`)));
+    { const pt = porTarjeta(pz); if (pt) card.append(pt); }
+    card.append(h('p', { class: 'note' }, 'Ahorro trabajado = lo que tienes en tus metas − lo que debes en tarjetas (sin las compras a meses que ya están en tus fijos).'));
+    if (cs.length >= 3) card.append(historialCierres(P, sel));
+    card.append(btn);
+    return card;
+  }
+
+  // every close as a row (tap to see its bridge) + working net worth vs the plan since your first close
+  function historialCierres(P, sel) {
+    const cs = S.cierres, base = cs[0], pat = (c) => sumaMetas(c) - deudaConsumo(c);
+    const filas = [];
+    for (let i = cs.length - 1; i >= 1; i--) {
+      const pz = puente(cs[i - 1], cs[i]), d = pz.pFin - pz.pIni, plan = P.ahorro * pz.semanas, g = rango(d, plan);
+      const tol = Math.max(200, pz.apartado * 0.05), tolD = Math.max(300, P.ingreso * 52 / 12 * 0.02);
+      const cu = Math.abs(pz.otros) <= tol ? { cls: 'ok', ico: '✓', t: 'Cuadra' } : cs[i].explica ? { cls: 'ok', ico: '✓', t: 'Explicado' } : { cls: 'warn', ico: '?', t: 'Sin explicar' };
+      const de = pz.dDeuda > tolD ? { cls: 'no', ico: '↑', t: 'Deuda subió' } : pz.dDeuda < -tolD ? { cls: 'ok', ico: '↓', t: 'Deuda bajó' } : { cls: 'na', ico: '=', t: 'Deuda igual' };
+      const mes = MESL[(+cs[i].fecha.slice(5, 7) + (+cs[i].fecha.slice(8) <= 10 ? 10 : 11)) % 12];
+      filas.push(h('button', { class: `cfila ${i === sel ? 'on' : ''}`, 'aria-pressed': String(i === sel), onclick: () => { S.cierreSel = i; render(); } },
+        h('span', { class: 'cm', title: mes }, `${mes.charAt(0).toUpperCase()}${mes.slice(1, 3)}`),
+        h('span', { class: `cd num ${g.cls}` }, `${d >= 0 ? '+' : '−'}${money(Math.abs(d))}`),
+        h('span', { class: 'cc' }, h('span', { class: `mark ${g.cls}`, title: g.txt, 'aria-label': `Plan: ${g.txt}` }, g.ico)),
+        h('span', { class: 'cc' }, h('span', { class: `mark ${cu.cls}`, title: cu.t, 'aria-label': cu.t }, cu.ico)),
+        h('span', { class: 'cc' }, h('span', { class: `mark ${de.cls}`, title: de.t, 'aria-label': de.t }, de.ico))));
+    }
+    // trend: real working net worth at each close vs base + plan
+    const chart = mountChart((box, W) => {
+      const pts = cs.map((c) => ({ x: daysBetween(base.fecha, c.fecha) / 7, real: pat(c), plan: pat(base) + P.ahorro * daysBetween(base.fecha, c.fecha) / 7 }));
+      const all = pts.flatMap((p) => [p.real, p.plan]), lo = Math.min(...all), hi = Math.max(...all), pad = (hi - lo) * 0.15 || 1000;
+      const H = 150, T = 12, B = 22, L = 4, RG = 46, pw = W - L - RG, ph = H - T - B, xmax = pts.at(-1).x || 1;
+      const X = (x) => L + x / xmax * pw, Y = (v) => T + ph - (v - (lo - pad)) / (hi - lo + 2 * pad) * ph;
+      const svg = sv('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': `Ahorro trabajado: de ${money(pts[0].real)} a ${money(pts.at(-1).real)}; plan ${money(pts.at(-1).plan)}` });
+      [lo, hi].forEach((v) => { svg.append(sv('line', { x1: L, x2: L + pw, y1: Y(v), y2: Y(v), stroke: 'var(--line)' })); svg.append(sv('text', { x: W - 2, y: Y(v) + 4, class: 'tk', 'text-anchor': 'end' }, kfmt(v))); });
+      svg.append(sv('path', { d: pts.map((p, k) => `${k ? 'L' : 'M'}${X(p.x)} ${Y(p.plan)}`).join(''), fill: 'none', stroke: 'var(--muted)', 'stroke-width': 1.5, 'stroke-dasharray': '4 4' }));
+      svg.append(sv('path', { d: pts.map((p, k) => `${k ? 'L' : 'M'}${X(p.x)} ${Y(p.real)}`).join(''), fill: 'none', stroke: 'var(--accent)', 'stroke-width': 2.5, 'stroke-linejoin': 'round' }));
+      pts.forEach((p, k) => { svg.append(sv('circle', { cx: X(p.x), cy: Y(p.real), r: k === pts.length - 1 ? 5 : 3.5, fill: 'var(--accent)', stroke: 'var(--panel)', 'stroke-width': 2 })); svg.append(sv('text', { x: k === 0 ? L : k === pts.length - 1 ? L + pw : X(p.x), y: H - 6, class: 'tk', 'text-anchor': k === 0 ? 'start' : k === pts.length - 1 ? 'end' : 'middle' }, corto(cs[k].fecha))); });
+      box.replaceChildren(svg);
+    }, 'trend', 150);
+    const brecha = pat(cs.at(-1)) - (pat(base) + P.ahorro * daysBetween(base.fecha, cs.at(-1).fecha) / 7);
+    return h('div', { class: 'hcierres' }, h('div', { class: 'grp' }, 'Tus cierres'),
+      h('div', { class: 'cfilas' }, h('div', { class: 'chead' }, h('span', {}, 'Mes'), h('span', {}, 'Cambio'), h('span', { class: 'cc' }, 'Plan'), h('span', { class: 'cc' }, 'Cuadre'), h('span', { class: 'cc' }, 'Deuda')), filas),
+      h('div', { class: 'grp', style: 'padding-top:10px' }, 'Tu ahorro trabajado contra tu plan'),
+      chart,
+      h('div', { class: 'legend' }, h('span', {}, h('i', { style: 'border-color:var(--accent);border-top-width:3px' }), 'Real'), h('span', {}, h('i', { style: 'border-color:var(--muted);border-top-style:dashed' }), 'Si hubieras seguido tu plan')),
+      h('p', { class: 'note' }, brecha >= 0 ? `Vas ${money(brecha)} arriba de tu plan desde el ${largo(base.fecha)}.` : `Vas ${money(-brecha)} abajo de tu plan desde el ${largo(base.fecha)}.`));
+  }
+
+  function cierreForm(P) {
+    const hoy = today(), msi = msiPendiente(hoy), ult = S.cierres.at(-1);
+    const ins = S.metas.map((m) => [m, h('input', { type: 'number', inputmode: 'decimal', min: '0', step: 'any', 'aria-label': `Saldo de ${m.nombre}`, placeholder: String(Math.round(ultimo(m).saldo)) })]);
+    const tarjetas = S.modelo.tarjetas || [], modo = tarjetas.length && S.modelo.deudaModo !== 'total' ? 'tarjeta' : 'total';
+    const deuda = h('input', { type: 'number', id: 'ci-deuda', inputmode: 'decimal', min: '0', step: 'any', 'aria-label': 'Deuda total en tarjetas', placeholder: ult ? String(Math.round(ult.deuda)) : '0' });
+    const tIns = tarjetas.map((t) => [t, h('input', { type: 'number', inputmode: 'decimal', min: '0', step: 'any', class: 'ci-t', 'aria-label': `Deuda en ${t.nombre}`, placeholder: ult && ult.detalle && ult.detalle[t.id] != null ? String(Math.round(ult.detalle[t.id])) : '0' })]);
+    const totalTxt = h('div', { class: 'ci-total num' });
+    const valT = (t, i) => (i.value !== '' ? Number(i.value) : ult && ult.detalle && ult.detalle[t.id] != null ? ult.detalle[t.id] : null);
+    const refresca = () => { const vs = tIns.map(([t, i]) => valT(t, i)); totalTxt.textContent = `Total: ${money(vs.reduce((a, v) => a + (v || 0), 0))}`; };
+    tIns.forEach(([, i]) => i.addEventListener('input', refresca)); refresca();
+    const guardar = () => {
+      const metas = {};
+      for (const [m, i] of ins) metas[m.id] = i.value === '' ? ultimo(m).saldo : Number(i.value);
+      let total, detalle = null;
+      if (modo === 'tarjeta') {
+        detalle = {};
+        for (const [t, i] of tIns) { const v = valT(t, i); if (v == null) { toast(`Escribe cuánto debes en ${t.nombre} (0 si nada).`); i.focus(); return; } detalle[t.id] = v; }
+        total = Object.values(detalle).reduce((a, v) => a + v, 0);
+      } else {
+        if (deuda.value === '' && !ult) { toast('Escribe cuánto debes en tus tarjetas (0 si nada).'); deuda.focus(); return; }
+        total = deuda.value === '' ? ult.deuda : Number(deuda.value);
+      }
+      const c = { fecha: hoy, metas, deuda: total, msi };
+      if (detalle) c.detalle = detalle;
+      S.cierres = S.cierres.filter((x) => x.fecha !== hoy).concat(c).sort((a, b) => a.fecha.localeCompare(b.fecha));
+      for (const [m, i] of ins) if (i.value !== '') m.saldos = m.saldos.filter((x) => x.fecha !== hoy).concat({ fecha: hoy, saldo: Number(i.value) }).sort((a, b) => a.fecha.localeCompare(b.fecha));
+      S.editando = null; save('cierres'); save('metas'); toast('Cierre guardado.'); render();
+    };
+    return h('div', { class: 'mform' },
+      h('p', { class: 'note' }, 'Lo que tienes hoy en cada meta y lo que debes en tus tarjetas. Si una meta no cambió, déjala vacía.'),
+      ins.map(([m, i]) => h('label', { class: 'fld' }, m.nombre, i)),
+      h('div', { class: 'fld' }, h('div', { class: 'top' }, h('span', {}, '¿Cuánto debes en tus tarjetas de crédito?'),
+          tarjetas.length ? h('div', { class: 'switch', role: 'group', 'aria-label': 'Cómo capturar la deuda' }, [['tarjeta', 'Por tarjeta'], ['total', 'Total']].map(([k, l]) => h('button', { type: 'button', 'aria-pressed': String(modo === k), onclick: () => { S.modelo.deudaModo = k; save('modelo'); render(); } }, l))) : null),
+        modo === 'tarjeta' ? h('div', { class: 'grid2' }, tIns.map(([t, i]) => h('label', { class: 'fld' }, t.nombre, i))) : deuda,
+        modo === 'tarjeta' ? totalTxt : null,
+        h('span', { class: 'hint' }, `El saldo total que muestra tu app, aunque incluya compras a meses. Yo resto lo que falta de las que tienes en tus fijos: ~${money(msi)}.${tarjetas.length ? '' : ' Si registras tus tarjetas en Mi modelo, puedes capturar cada una por separado.'}`)),
+      h('div', { class: 'entry' }, h('button', { class: 'btn primary', onclick: guardar }, 'Guardar cierre'), h('button', { class: 'btn', onclick: () => { S.editando = null; render(); } }, 'Cancelar')));
+  }
+
+  // ---------------------------------------------------------- Fijos discrecionales
+  // Only what you chose: the ones that end on their own (installments, loans) and the ones you could cancel (subscriptions)
+  function viewPalancas(P, ym) {
+    const disc = (S.modelo.fijos || []).filter((f) => f.tipo === 'discrecional' && activo(f, ym));
+    if (!disc.length) return null;
+    const mesesEntre = (a, b) => (+b.slice(0, 4) - +a.slice(0, 4)) * 12 + (+b.slice(5, 7) - +a.slice(5, 7));
+    const card = h('section', { class: 'card', id: 'deudas' }, h('h2', {}, 'Tus fijos discrecionales'),
+      h('p', { class: 'note' }, `Los elegiste tú: suman ${money(P.discrecionales)} por semana (${P.ingreso ? Math.round(P.discrecionales / P.ingreso * 100) : 0}% de tu ingreso). Tus fijos esenciales no aparecen aquí.`));
+    const conFin = disc.filter((f) => f.termina).sort((x, y) => x.termina.localeCompare(y.termina));
+    const sinFin = disc.filter((f) => !f.termina).map((f) => ({ ...f, anual: Number(f.monto || 0) * (FREQ[f.frecuencia] || 12) })).sort((x, y) => y.anual - x.anual);
+    if (conFin.length) {
+      card.append(h('div', { class: 'grp' }, 'Terminan solos'));
+      for (const f of conFin) {
+        const mensual = Number(f.monto || 0) * (FREQ[f.frecuencia] || 12) / 12;
+        const meses = Math.max(1, mesesEntre(ym, f.termina) + 1), pagos = Math.max(1, Math.round(meses * (FREQ[f.frecuencia] || 12) / 12));
+        card.append(h('div', { class: 'lever' }, h('div', { class: 'top' }, h('b', {}, f.concepto), h('span', { class: 'num' }, `${money(mensual)} al mes`)),
+          h('span', { class: 'note' }, `Termina en ${mesAnio(f.termina)} · quedan ~${pagos} ${pagos === 1 ? 'pago' : 'pagos'} (~${money(pagos * Number(f.monto || 0))})`),
+          h('span', { class: 'gain' }, `Al terminar liberas ${money(mensual)} al mes para tus metas`)));
+      }
+    }
+    if (sinFin.length) {
+      card.append(h('div', { class: 'grp' }, 'Podrías cancelarlos'));
+      for (const f of sinFin) {
+        card.append(h('div', { class: 'lever' }, h('div', { class: 'top' }, h('b', {}, f.concepto), h('span', { class: 'num' }, `${money(f.anual)} al año`)),
+          h('span', { class: 'gain' }, `Si lo cancelas: +${money(f.anual / 52)} por semana para tus metas`)));
+      }
+    }
+    return card;
+  }
+  const monthEndOf = (ym) => { const y = +ym.slice(0, 4), m = +ym.slice(5, 7); return `${ym}-${String(new Date(Date.UTC(y, m, 0)).getUTCDate()).padStart(2, '0')}`; };
+
+  // ---------------------------------------------------------- Respaldo: your data lives only on this device, so keep a copy
+  const RESP_KEYS = ['modelo', 'metas', 'pagos', 'cierres', 'vista', 'planVer'];
+  function respaldoJSON() {
+    const data = {}; for (const k of RESP_KEYS) data[k] = S[k];
+    return JSON.stringify({ app: 'mental-finance', version: 1, exportado: new Date().toISOString(), data }, null, 2);
+  }
+  async function exportar() {
+    const txt = respaldoJSON(), nombre = `mental-finance-respaldo-${today()}.json`;
+    try {
+      const file = new File([txt], nombre, { type: 'application/json' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Respaldo Mental Finance' }); S.ultimoRespaldo = today(); save('ultimoRespaldo'); render(); return; }
+    } catch (e) { if (e && e.name === 'AbortError') return; }
+    try {
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: 'application/json' })); a.download = nombre; document.body.append(a); a.click(); a.remove();
+      S.ultimoRespaldo = today(); save('ultimoRespaldo'); toast('Respaldo descargado.'); render();
+    } catch (e) { toast('No se pudo descargar. Usa "Copiar respaldo".'); }
+  }
+  function importar(texto) {
+    let o; try { o = JSON.parse(texto); } catch (e) { toast('Ese archivo no es un respaldo válido.'); return; }
+    const d = o && o.app === 'mental-finance' ? o.data : null;
+    if (!d || !d.modelo) { toast('Ese archivo no es un respaldo de Mental Finance.'); return; }
+    for (const k of RESP_KEYS) if (d[k] !== undefined) { S[k] = d[k]; save(k); }
+    S.metas = S.metas || []; S.pagos = S.pagos || {}; S.cierres = S.cierres || [];
+    toast('Respaldo importado.'); go('hoy');
+  }
+  function viewRespaldo() {
+    const file = h('input', { type: 'file', id: 'resp-file', accept: 'application/json,.json', hidden: true, onchange: (e) => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => importar(String(r.result)); r.readAsText(f); } });
+    let armado = false;
+    const imp = h('button', { class: 'btn', onclick: () => { if (!armado) { armado = true; imp.textContent = 'Reemplaza tus datos actuales. Toca otra vez'; return; } file.click(); } }, 'Importar respaldo');
+    const copiar = h('button', { class: 'btn ghost', onclick: async () => { try { await navigator.clipboard.writeText(respaldoJSON()); toast('Respaldo copiado. Pégalo en una nota o correo.'); } catch (e) { toast('No se pudo copiar en este navegador.'); } } }, 'Copiar respaldo');
+    const dias = S.ultimoRespaldo ? Math.round((new Date(today() + 'T12:00:00Z') - new Date(S.ultimoRespaldo + 'T12:00:00Z')) / 864e5) : null;
+    return h('section', { class: 'card', id: 'respaldo' }, h('h2', {}, 'Respaldo'),
+      h('p', { class: 'note' }, 'Tus datos viven solo en este dispositivo. Guarda un respaldo en Archivos, iCloud o tu correo; si cambias de teléfono o se borran, lo importas aquí.'),
+      h('p', { class: 'note', style: dias == null || dias > 30 ? 'color:var(--bad)' : '' }, dias == null ? 'Todavía no has hecho un respaldo.' : `Último respaldo: ${dias === 0 ? 'hoy' : `hace ${dias} días`}.`),
+      h('div', { class: 'entry', style: 'flex-wrap:wrap' }, h('button', { class: 'btn primary', onclick: exportar }, 'Exportar respaldo'), imp, file), copiar);
+  }
+
+  // ---------------------------------------------------------- Mi modelo
+  function diaPagoField(m) {
+    const fr = m.ingresoFrecuencia, upd = (fn) => { fn(); save('modelo'); };
+    if (fr === 'Semanal') return h('label', { class: 'fld' }, '¿Qué día te pagan?', h('select', { id: 'm-dia', onchange: (e) => upd(() => { m.diaPago = Number(e.target.value); }) }, DIAS_L.map((n, i) => h('option', { value: String(i), selected: Number(m.diaPago ?? 5) === i ? true : null }, n.charAt(0).toUpperCase() + n.slice(1)))));
+    if (fr === 'Catorcenal') return h('label', { class: 'fld' }, 'Fecha de tu último pago', h('input', { type: 'date', value: m.refPago || null, onchange: (e) => upd(() => { m.refPago = e.target.value; }) }));
+    if (fr === 'Quincenal') return h('p', { class: 'note' }, 'Días de pago: el 15 y el último de cada mes.');
+    return h('label', { class: 'fld' }, '¿Qué día del mes te pagan?', h('input', { type: 'number', min: '1', max: '31', value: String(m.diaPago || 1), oninput: (e) => upd(() => { m.diaPago = Number(e.target.value || 1); }) }));
+  }
+  function viewModelo() {
+    const m = S.modelo, ym = today().slice(0, 7), P = plan(m, ym);
+    const upd = (fn) => { fn(); save('modelo'); refreshResult(); };
+    const sel = (val, on) => h('select', { onchange: (e) => on(e.target.value) }, Object.keys(FREQ).map((k) => h('option', { value: k, selected: k === val }, FREQ_TXT[k].charAt(0).toUpperCase() + FREQ_TXT[k].slice(1))));
+    const result = h('p', { class: 'result', id: 'model-result' });
+    function refreshResult() {
+      const Q = plan(S.modelo, ym);
+      result.textContent = Q.flexible >= 0 ? `Puedes gastar ${money(Q.flexible)} por semana en lo flexible (${money(Q.flexible * 52 / 12)} al mes) y apartar ${money(Q.ahorro)} por semana.` : `Tus fijos y tu ahorro suman más que tu ingreso por ${money(-Q.flexible)} a la semana.`;
+    }
+    refreshResult();
+    const ingreso = h('section', { class: 'card' }, h('h2', {}, 'Ingreso y ahorro'),
+      h('div', { class: 'grid2' },
+        h('label', { class: 'fld' }, 'Ingreso neto', h('input', { type: 'number', inputmode: 'decimal', id: 'm-ing', value: String(m.ingresoMonto), oninput: (e) => upd(() => { m.ingresoMonto = Number(e.target.value || 0); }) })),
+        h('label', { class: 'fld' }, 'Cada cuándo', sel(m.ingresoFrecuencia, (v) => { upd(() => { m.ingresoFrecuencia = v; }); render(); }))),
+      h('label', { class: 'fld' }, '% de tu ingreso para ahorro e inversión', h('input', { type: 'number', inputmode: 'decimal', id: 'm-pct', min: '0', max: '100', value: String(Math.round(m.ahorroPct * 1000) / 10), oninput: (e) => upd(() => { m.ahorroPct = Number(e.target.value || 0) / 100; }) })),
+      diaPagoField(m),
+      result);
+    const list = h('div', { class: 'fl' }, (m.fijos || []).map((f, i) => {
+      const anual = () => Number(f.monto || 0) * (FREQ[f.frecuencia] || 12);
+      const resumen = () => `${money(f.monto)} ${FREQ_TXT[f.frecuencia] || ''}${f.termina ? ` · hasta ${MES[+f.termina.slice(5, 7) - 1]} ${f.termina.slice(0, 4)}` : ''}`;
+      const sub = h('span', { class: 'fs' }, resumen()), an = h('span', { class: 'fa num' }, `${money(anual())}/año`), nm = h('b', {}, f.concepto);
+      const tag = h('span', { class: `tag ${f.tipo === 'discrecional' ? 'd' : ''}` }), help = h('p', { class: 'cat-help' });
+      const ref = () => { sub.textContent = resumen(); an.textContent = `${money(anual())}/año`; nm.textContent = f.concepto; const c = CATS[cat(f)]; tag.textContent = f.esAhorro ? 'Ahorro' : c.tag; tag.className = `tag ${f.tipo === 'discrecional' && !f.esAhorro ? 'd' : ''}`; help.textContent = f.esAhorro ? 'Cuenta como gasto fijo en tu plan, pero también se suma a tu ahorro total. Ej. PPR, aportaciones voluntarias.' : c.txt; };
+      const seg = h('div', { class: 'seg2', role: 'group', 'aria-label': `Tipo de ${f.concepto}` }, [['esencial', 'Esencial'], ['discrecional', 'Discrecional']].map(([k, l]) => h('button', { type: 'button', 'aria-pressed': String((f.tipo || 'esencial') === k), onclick: (e) => upd(() => { f.tipo = k; [...seg.children].forEach((b) => b.setAttribute('aria-pressed', String(b === e.currentTarget))); ref(); }) }, l)));
+      ref();
+      const d = h('details', { class: 'fijo', open: S.abierto === i ? true : null, ontoggle: (e) => { if (e.target.open) S.abierto = i; } },
+        h('summary', {}, h('span', { class: 'fn' }, h('span', { class: 'inline' }, nm, ' ', tag), sub), an),
+        h('div', { class: 'fbody' },
+          h('label', { class: 'fld' }, 'Concepto', h('input', { type: 'text', value: f.concepto, oninput: (e) => upd(() => { f.concepto = e.target.value; ref(); }) })),
+          h('div', { class: 'grid2' },
+            h('label', { class: 'fld' }, 'Monto', h('input', { type: 'number', inputmode: 'decimal', value: String(f.monto), oninput: (e) => upd(() => { f.monto = Number(e.target.value || 0); ref(); }) })),
+            h('label', { class: 'fld' }, 'Cada cuándo', sel(f.frecuencia, (v) => upd(() => { f.frecuencia = v; ref(); })))),
+          h('div', { class: 'fld' }, '¿Lo necesitas o lo elegiste?', seg),
+          h('div', { class: 'grid2' },
+            h('label', { class: 'fld' }, '¿Termina? (vacío si no)', h('input', { type: 'month', value: f.termina || null, oninput: (e) => upd(() => { f.termina = e.target.value || null; ref(); }) })),
+            h('label', { class: 'fld' }, '¿Desde cuándo? (opcional)', h('input', { type: 'month', value: f.inicia || null, oninput: (e) => upd(() => { f.inicia = e.target.value || null; ref(); }) }))),
+          help,
+          h('label', { class: 'chk' }, h('input', { type: 'checkbox', checked: f.esAhorro ? true : null, onchange: (e) => upd(() => { f.esAhorro = e.target.checked; ref(); }) }), h('span', {}, 'Es ahorro (ej. PPR)')),
+          h('div', { class: 'meta' }, h('span', {}, `${P.ingreso ? Math.round(anual() / 52 / P.ingreso * 100) : 0}% de tu ingreso`), h('button', { class: 'btn small', 'aria-label': `Quitar ${f.concepto}`, onclick: () => { m.fijos.splice(i, 1); S.abierto = null; save('modelo'); render(); } }, 'Quitar'))));
+      return d;
+    }));
+    const fijos = h('section', { class: 'card' }, h('div', { class: 'top' }, h('h2', {}, `Gastos fijos · ${money(P.fijos)} por semana`)),
+      h('p', { class: 'note' }, 'Lo que pagas cada periodo, con su monto real. Márcalo como esencial (lo necesitas) o discrecional (lo elegiste y podrías quitarlo), y si tiene fecha de fin.'),
+      list, h('button', { class: 'btn', onclick: () => { m.fijos.push({ concepto: 'Nuevo gasto fijo', monto: 0, frecuencia: 'Mensual', tipo: 'esencial' }); S.abierto = m.fijos.length - 1; save('modelo'); render(); } }, '+ Agregar gasto fijo'));
+    const tarjetas = h('section', { class: 'card', id: 'tarjetas' }, h('h2', {}, 'Tarjetas de crédito'),
+      h('p', { class: 'note' }, 'Regístralas para capturar en tu cierre del mes cuánto debes en cada una. No necesitas números de tarjeta, solo un nombre.'),
+      h('div', { class: 'tlist' }, (m.tarjetas || []).map((t, i) => h('div', { class: 'entry' },
+        h('input', { type: 'text', value: t.nombre, 'aria-label': 'Nombre de la tarjeta', oninput: (e) => { t.nombre = e.target.value; save('modelo'); } }),
+        h('button', { class: 'btn small', 'aria-label': `Quitar ${t.nombre}`, onclick: () => { m.tarjetas.splice(i, 1); save('modelo'); render(); } }, 'Quitar')))),
+      h('button', { class: 'btn', onclick: () => { (m.tarjetas = m.tarjetas || []).push({ id: Math.random().toString(36).slice(2, 8), nombre: 'Nueva tarjeta' }); save('modelo'); render(); } }, '+ Agregar tarjeta'));
+    return [h('div', { class: 'head' }, h('span', { class: 'brand' }, 'Mi modelo')), ingreso, fijos, tarjetas, viewRespaldo()];
+  }
+
+  // ---------------------------------------------------------- shell
+  function go(t) { S.tab = t; S.editando = null; render(); window.scrollTo(0, 0); }
+  document.querySelectorAll('.tabbar button').forEach((b) => b.addEventListener('click', () => go(b.dataset.tab)));
+  function render() {
+    document.querySelectorAll('.tabbar button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === S.tab)));
+    $('#app').replaceChildren(...[].concat(S.tab === 'modelo' ? viewModelo() : viewHoy()).filter(Boolean));
+  }
+  render();
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
+try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}
+</script>
+</body>
+</html>
