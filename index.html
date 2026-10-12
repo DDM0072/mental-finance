@@ -112,6 +112,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .ci-total { font-size: 0.85rem; font-weight: 600; text-align: right; }
 .mform .switch button { padding: 4px 10px; font-size: 0.78rem; white-space: nowrap; }
 .mform .switch { flex: none; }
+.reserva { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--line); padding-top: 10px; }
+.reserva .bar { position: relative; overflow: visible; }
+.liq { font-size: 0.88rem; }
+.liq b { font-weight: 700; }
 .ask { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: 12px; background: var(--warn-soft); }
 .opts { display: flex; flex-wrap: wrap; gap: 6px; }
 .fld .hint { font-size: 0.75rem; line-height: 1.4; }
@@ -189,7 +193,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   <button role="tab" id="tab-modelo" data-tab="modelo" aria-selected="false">Mi modelo</button>
 </nav>
 <div class="toast" id="toast" hidden></div>
-<script id="seed" type="application/json">{"modelo": {"ingresoMonto": 0, "ingresoFrecuencia": "Semanal", "ahorroPct": 0.2, "diaPago": 5, "fijos": [], "tarjetas": [], "deudaModo": "tarjeta"}}</script>
+<script id="seed" type="application/json">{"modelo": {"ingresoMonto": 0, "ingresoFrecuencia": "Semanal", "ahorroPct": 0.2, "diaPago": 5, "fijos": [], "tarjetas": [], "deudaModo": "tarjeta", "piso": {"pctFijos": 1, "pctFlex": 0.5}}}</script>
 <script>
 (() => {
   'use strict';
@@ -626,14 +630,33 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
     if (!ds.length) return null;
     return h('div', { class: 'note', style: 'margin:-4px 0 0 38px' }, 'Cambio por tarjeta, incluyendo compras a meses: ', ds.map(([id, d]) => `${nombreTarjeta(id)} ${d > 0 ? '+' : '−'}${money(Math.abs(d))}`).join(' · '));
   }
+  // Reserva para gastos: money in debit/payroll accounts meant for upcoming expenses. Not savings: working capital with a floor.
+  const pisoCfg = () => Object.assign({ pctFijos: 1, pctFlex: 0.5 }, S.modelo.piso || {});
+  function pisoMensual(P) { const c = pisoCfg(); return (P.fijos * Number(c.pctFijos) + Math.max(0, P.flexible) * Number(c.pctFlex)) * 52 / 12; }
+  function reservaBlock(P, c, prev) {
+    if (!c || c.reserva == null) return null;
+    const piso = pisoMensual(P), d = c.reserva - piso, tol = Math.max(500, piso * 0.05);
+    const st = d > tol ? { cls: 'ok', ico: '↑', b: `${money(d)} arriba de tu piso.`, t: ' Si se mantiene al cierre del mes, gastaste menos de lo planeado y ese excedente es ahorro sin asignar: muévelo a tus metas.' }
+      : d < -tol ? { cls: 'no', ico: '↓', b: `${money(-d)} debajo de tu piso.`, t: ' Estás gastando más de lo planeado o cubriendo gasto con tu reserva. Revisa tu flexible antes de que se vuelva deuda.' }
+      : { cls: 'ok', ico: '✓', b: 'En tu piso.', t: ' Tu reserva cubre lo que definiste para el mes.' };
+    const at = sumaMetas(c) - deudaConsumo(c);
+    return h('div', { class: 'reserva' }, h('div', { class: 'grp' }, 'Reserva para gastos'),
+      h('div', { class: 'top' }, h('span', { class: 'goal-v' }, money(c.reserva)), h('span', { class: 'note num' }, `piso ${money(piso)}`)),
+      h('div', { class: 'bar' }, h('div', { class: `fill ${d < -tol ? 'no' : ''}`, style: `width:${Math.min(100, c.reserva / Math.max(1, piso) * 100).toFixed(1)}%` }), h('div', { class: 'tick', style: 'left:calc(100% - 2px)' })),
+      h('div', { class: 'verdict' }, markR({ cls: st.cls, ico: st.ico }), h('div', {}, h('b', { class: st.cls }, st.b), st.t,
+        prev && prev.reserva != null ? h('div', { class: 'note' }, `Desde el cierre anterior tu reserva ${c.reserva >= prev.reserva ? 'subió' : 'bajó'} ${money(Math.abs(c.reserva - prev.reserva))}.`) : null)),
+      h('div', { class: 'liq' }, h('span', {}, 'Ahorro trabajado + reserva = '), h('b', { class: 'num' }, money(at + c.reserva)), h('span', { class: 'note' }, ' (tu patrimonio líquido)')));
+  }
   function viewCierre(P) {
     const card = h('section', { class: 'card', id: 'cierre' }, h('h2', {}, 'Cierre del mes'));
     if (!S.metas.length) { card.append(h('p', { class: 'note' }, 'Crea al menos una meta para hacer tu cierre.')); return card; }
     const cs = S.cierres, ult = cs.at(-1), hoy = today();
     if (S.editando === 'cierre') { card.append(cierreForm(P)); return card; }
-    // a close done in the first days of a month counts for the previous month
-    const mesDe = (d) => (+d.slice(8) <= 10 ? addDays(d.slice(0, 8) + '01', -1) : d).slice(0, 7);
-    const mesPrevio = addDays(hoy.slice(0, 8) + '01', -1).slice(0, 7);
+    // which month a close covers: done on day 25+ → that month; before → the previous month
+    // (so a starting point taken mid-month doesn't count as that month's close)
+    const mesDe = (d) => (+d.slice(8) >= 25 ? d : addDays(d.slice(0, 8) + '01', -1)).slice(0, 7);
+    // from day 28 on you can close the current month; before that, the previous one
+    const mesPrevio = (+hoy.slice(8) >= 28 ? hoy : addDays(hoy.slice(0, 8) + '01', -1)).slice(0, 7);
     const debeCerrar = !ult || mesDe(ult.fecha) < mesPrevio;
     const btn = h('button', { class: debeCerrar ? 'btn primary' : 'btn ghost', onclick: () => { S.editando = 'cierre'; render(); } },
       !ult ? 'Hacer mi primer cierre' : debeCerrar ? `Cerrar ${MESL[+mesPrevio.slice(5, 7) - 1]}` : 'Hacer otro cierre');
@@ -643,7 +666,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
     }
     if (cs.length === 1) {
       card.append(h('div', { class: 'verdict' }, h('span', { class: 'mark na', 'aria-hidden': 'true' }, '·'),
-        h('div', {}, h('b', {}, `Punto de partida: ${largo(ult.fecha)}.`), ` Ahorro trabajado: ${money(sumaMetas(ult) - deudaConsumo(ult))}. Tu primer puente se arma en tu siguiente cierre.`)), btn);
+        h('div', {}, h('b', {}, `Punto de partida: ${largo(ult.fecha)}.`), ` Ahorro trabajado: ${money(sumaMetas(ult) - deudaConsumo(ult))}. Tu primer puente se arma en tu siguiente cierre.`)), reservaBlock(P, ult, null), btn);
       return card;
     }
     const sel = S.cierreSel != null && S.cierreSel >= 1 && S.cierreSel < cs.length ? S.cierreSel : cs.length - 1;
@@ -674,6 +697,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
     else if (pz.dDeuda < -tolD) card.append(h('div', { class: 'verdict' }, markR({ cls: 'ok', ico: '✓' }), h('div', {}, h('b', { class: 'ok' }, `Bajaste tu deuda de tarjetas ${money(-pz.dDeuda)}.`), ' Deber menos también es avanzar; suma a tu ahorro trabajado.')));
     else card.append(h('div', { class: 'verdict' }, markR({ cls: 'ok', ico: '✓' }), h('div', {}, h('b', { class: 'ok' }, 'Tu deuda de tarjetas se mantuvo.'), ` ${money(deudaConsumo(cs[sel]))}, sin contar ${money(msiPendiente(cs[sel].fecha))} de compras a meses.`)));
     { const pt = porTarjeta(pz); if (pt) card.append(pt); }
+    { const rb = reservaBlock(P, cs[sel], cs[sel - 1]); if (rb) card.append(rb); }
     card.append(h('p', { class: 'note' }, 'Ahorro trabajado = lo que tienes en tus metas − lo que debes en tarjetas (sin las compras a meses que ya están en tus fijos).'));
     if (cs.length >= 3) card.append(historialCierres(P, sel));
     card.append(btn);
@@ -726,6 +750,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
     const deuda = h('input', { type: 'number', id: 'ci-deuda', inputmode: 'decimal', min: '0', step: 'any', 'aria-label': 'Deuda total en tarjetas', placeholder: ult ? String(Math.round(ult.deuda)) : '0' });
     const tIns = tarjetas.map((t) => [t, h('input', { type: 'number', inputmode: 'decimal', min: '0', step: 'any', class: 'ci-t', 'aria-label': `Deuda en ${t.nombre}`, placeholder: ult && ult.detalle && ult.detalle[t.id] != null ? String(Math.round(ult.detalle[t.id])) : '0' })]);
     const totalTxt = h('div', { class: 'ci-total num' });
+    const resIn = h('input', { type: 'number', id: 'ci-reserva', inputmode: 'decimal', min: '0', step: 'any', 'aria-label': 'Reserva para gastos', placeholder: ult && ult.reserva != null ? String(Math.round(ult.reserva)) : 'Opcional' });
     const valT = (t, i) => (i.value !== '' ? Number(i.value) : ult && ult.detalle && ult.detalle[t.id] != null ? ult.detalle[t.id] : null);
     const refresca = () => { const vs = tIns.map(([t, i]) => valT(t, i)); totalTxt.textContent = `Total: ${money(vs.reduce((a, v) => a + (v || 0), 0))}`; };
     tIns.forEach(([, i]) => i.addEventListener('input', refresca)); refresca();
@@ -743,6 +768,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
       }
       const c = { fecha: hoy, metas, deuda: total, msi };
       if (detalle) c.detalle = detalle;
+      const rv = resIn.value !== '' ? Number(resIn.value) : ult && ult.reserva != null ? ult.reserva : null;
+      if (rv != null) c.reserva = rv;
       S.cierres = S.cierres.filter((x) => x.fecha !== hoy).concat(c).sort((a, b) => a.fecha.localeCompare(b.fecha));
       for (const [m, i] of ins) if (i.value !== '') m.saldos = m.saldos.filter((x) => x.fecha !== hoy).concat({ fecha: hoy, saldo: Number(i.value) }).sort((a, b) => a.fecha.localeCompare(b.fecha));
       S.editando = null; save('cierres'); save('metas'); toast('Cierre guardado.'); render();
@@ -755,6 +782,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
         modo === 'tarjeta' ? h('div', { class: 'grid2' }, tIns.map(([t, i]) => h('label', { class: 'fld' }, t.nombre, i))) : deuda,
         modo === 'tarjeta' ? totalTxt : null,
         h('span', { class: 'hint' }, `El saldo total que muestra tu app, aunque incluya compras a meses. Yo resto lo que falta de las que tienes en tus fijos: ~${money(msi)}.${tarjetas.length ? '' : ' Si registras tus tarjetas en Mi modelo, puedes capturar cada una por separado.'}`)),
+      h('label', { class: 'fld' }, 'Reserva para gastos (opcional)', resIn,
+        h('span', { class: 'hint' }, `Lo que tienes en tus cuentas de débito o nómina para pagar fijos y gastos. No incluyas cajitas o cuentas que ya son metas. Tu piso: ${money(pisoMensual(plan(S.modelo, hoy.slice(0, 7))))}.`)),
       h('div', { class: 'entry' }, h('button', { class: 'btn primary', onclick: guardar }, 'Guardar cierre'), h('button', { class: 'btn', onclick: () => { S.editando = null; render(); } }, 'Cancelar')));
   }
 
@@ -884,7 +913,17 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
         h('input', { type: 'text', value: t.nombre, 'aria-label': 'Nombre de la tarjeta', oninput: (e) => { t.nombre = e.target.value; save('modelo'); } }),
         h('button', { class: 'btn small', 'aria-label': `Quitar ${t.nombre}`, onclick: () => { m.tarjetas.splice(i, 1); save('modelo'); render(); } }, 'Quitar')))),
       h('button', { class: 'btn', onclick: () => { (m.tarjetas = m.tarjetas || []).push({ id: Math.random().toString(36).slice(2, 8), nombre: 'Nueva tarjeta' }); save('modelo'); render(); } }, '+ Agregar tarjeta'));
-    return [h('div', { class: 'head' }, h('span', { class: 'brand' }, 'Mi modelo')), ingreso, fijos, tarjetas, viewRespaldo()];
+    const pc = pisoCfg(), pisoTxt = h('p', { class: 'result', id: 'piso-result' });
+    const refPiso = () => { pisoTxt.textContent = `Tu piso: ${money(pisoMensual(plan(S.modelo, ym)))} en tus cuentas de débito.`; };
+    const setPiso = (k, v) => { S.modelo.piso = Object.assign(pisoCfg(), { [k]: Math.max(0, Number(v || 0)) / 100 }); save('modelo'); refPiso(); };
+    refPiso();
+    const piso = h('section', { class: 'card', id: 'piso' }, h('h2', {}, 'Reserva para gastos'),
+      h('p', { class: 'note' }, 'El piso que deberías mantener en tus cuentas de débito para cubrir lo que viene. Lo que tengas arriba es ahorro sin asignar; debajo, una señal de que gastas de más.'),
+      h('div', { class: 'grid2' },
+        h('label', { class: 'fld' }, '% de tus fijos del mes', h('input', { type: 'number', id: 'piso-f', inputmode: 'decimal', min: '0', value: String(Math.round(pc.pctFijos * 100)), oninput: (e) => setPiso('pctFijos', e.target.value) })),
+        h('label', { class: 'fld' }, '% de tu flexible del mes', h('input', { type: 'number', id: 'piso-x', inputmode: 'decimal', min: '0', value: String(Math.round(pc.pctFlex * 100)), oninput: (e) => setPiso('pctFlex', e.target.value) }))),
+      pisoTxt);
+    return [h('div', { class: 'head' }, h('span', { class: 'brand' }, 'Mi modelo')), ingreso, fijos, tarjetas, piso, viewRespaldo()];
   }
 
   // ---------------------------------------------------------- shell
