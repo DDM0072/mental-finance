@@ -183,6 +183,40 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .tabbar button { flex: 1 1 0; max-width: 10rem; border: 0; background: none; padding: 9px; border-radius: 10px; font-weight: 600; font-size: 0.9rem; color: var(--muted); cursor: pointer; }
 .tabbar button[aria-selected="true"] { color: var(--ink); background: var(--track); }
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(76px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 9px 14px; border-radius: 10px; font-size: 0.88rem; max-width: calc(100% - 32px); z-index: 4; }
+/* Tu semana: weekly flexible-spending log */
+.aviso { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: 16px; background: var(--warn-soft); border: 1px solid var(--warn); color: var(--ink); }
+.aviso b { display: block; font-size: 1.05rem; font-weight: 700; line-height: 1.35; }
+.aviso p { margin: 6px 0 0; font-size: 0.95rem; line-height: 1.45; }
+.aviso-i { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--warn); color: var(--panel); font-weight: 800; font-size: 1rem; margin-top: 1px; }
+.state { font-size: 0.88rem; font-weight: 600; line-height: 1.4; }
+.state.ok { color: var(--good); } .state.warn { color: var(--warn); } .state.no { color: var(--bad); }
+.fill.warn { background: var(--warn); }
+.big.no { color: var(--bad); }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--line); padding-top: 12px; }
+.stat { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.stat + .stat { border-left: 1px solid var(--line); padding-left: 12px; }
+.stat span { font-size: 0.75rem; color: var(--muted); }
+.stat b { font-size: 1.05rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.stat b.no { color: var(--bad); }
+.gform { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--line); padding-top: 12px; }
+.grow { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr); gap: 8px; }
+.gform input { width: 100%; font-size: 1rem; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); min-width: 0; }
+.gform input.amt { font-variant-numeric: tabular-nums; -moz-appearance: textfield; }
+.gform input.amt::-webkit-inner-spin-button, .gform input.amt::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.gform input[aria-invalid="true"] { border-color: var(--bad); }
+.sugs { display: flex; flex-wrap: wrap; gap: 6px; }
+.sug { border: 1px solid var(--line); background: var(--track); border-radius: 999px; padding: 4px 10px; font-size: 0.8rem; color: var(--muted); cursor: pointer; }
+.glist { display: flex; flex-direction: column; }
+.git { display: grid; grid-template-columns: 3.4rem minmax(0, 1fr) auto 2rem; gap: 8px; align-items: center; padding: 9px 0; font-size: 0.92rem; }
+.git + .git { border-top: 1px solid var(--line); }
+.git .d { font-size: 0.78rem; color: var(--muted); }
+.git .c { overflow-wrap: anywhere; }
+.git .a { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+.gdel { width: 2rem; height: 2rem; border: 0; background: none; border-radius: 8px; color: var(--muted); cursor: pointer; font-size: 1rem; }
+.mini3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; font-size: 0.8rem; color: var(--muted); }
+.mini3 b { display: block; font-size: 1rem; color: var(--ink); font-variant-numeric: tabular-nums; }
+.mini3 b.no { color: var(--bad); }
+.ok-t { color: var(--good); font-weight: 600; } .no-t { color: var(--bad); font-weight: 600; }
 @media (prefers-reduced-motion: no-preference) { .fill { transition: width .35s ease-out; } }
 </style>
 </head>
@@ -190,6 +224,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 <div class="app" id="app"></div>
 <nav class="tabbar" role="tablist" aria-label="Secciones">
   <button role="tab" id="tab-hoy" data-tab="hoy" aria-selected="true">Hoy</button>
+  <button role="tab" id="tab-gastos" data-tab="gastos" aria-selected="false">Gastos</button>
   <button role="tab" id="tab-modelo" data-tab="modelo" aria-selected="false">Mi modelo</button>
 </nav>
 <div class="toast" id="toast" hidden></div>
@@ -252,7 +287,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
     get(k, d) { try { const v = localStorage.getItem('mf.' + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem('mf.' + k, JSON.stringify(v)); } catch (e) { /* preview without storage */ } },
   };
-  const S = { modelo: store.get('modelo', seed.modelo), metas: store.get('metas', null), abierta: null, pagos: store.get('pagos', {}), cierres: store.get('cierres', []), cierreSel: null, vista: store.get('vista', 'sem'), planVer: store.get('planVer', 'tabla') === 'cascada' ? 'cascada' : 'tabla', tab: 'hoy', editando: null, abierto: null, ultimoRespaldo: store.get('ultimoRespaldo', null) };
+  const S = { modelo: store.get('modelo', seed.modelo), metas: store.get('metas', null), abierta: null, pagos: store.get('pagos', {}), cierres: store.get('cierres', []), cierreSel: null, vista: store.get('vista', 'sem'), planVer: store.get('planVer', 'tabla') === 'cascada' ? 'cascada' : 'tabla', tab: 'hoy', editando: null, abierto: null, ultimoRespaldo: store.get('ultimoRespaldo', null), gastos: store.get('gastos', []) };
   const save = (k) => store.set(k, S[k]);
   if (!S.metas) {
     S.metas = [];
@@ -375,11 +410,92 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
     return card;
   }
 
+  // ---------------------------------------------------------- Tu semana: registro sencillo del gasto flexible
+  // Registro AUXILIAR: solo informa. Disponible = gasto flexible semanal del plan; se reinicia cada lunes.
+  // No mueve saldos, no guarda destinos ni colchón y no entra al cierre: la realidad se registra solo con saldos.
+  // S.gastos = [{id, fecha, concepto, monto}]
+  const fin = (lun) => addDays(lun, 6);
+  const gastosDe = (lun) => S.gastos.filter((g) => g.fecha >= lun && g.fecha <= fin(lun));
+  const sumaG = (gs) => gs.reduce((a, g) => a + Number(g.monto || 0), 0);
+  const disponibleDe = (lun) => Math.max(0, plan(S.modelo, lun.slice(0, 7)).flexible);
+  const rangoSem = (lun) => `lun ${corto(lun)} – dom ${corto(fin(lun))}`;
+
+  function viewSemana(P) {
+    const hoy = today(), lun = lunes(hoy);
+    const disp = Math.max(0, P.flexible), gs = gastosDe(lun), g = sumaG(gs), rem = disp - g, pct = disp > 0 ? g / disp : (g > 0 ? 2 : 0);
+    const card = h('section', { class: 'card', id: 'semana' }, h('div', { class: 'top' }, h('h2', {}, 'Tu semana'), h('span', { class: 'note' }, rangoSem(lun))));
+    card.append(h('div', {}, h('div', { class: 'k' }, rem >= 0 ? 'Te queda esta semana' : 'Te pasaste esta semana'), h('div', { class: `big ${rem >= 0 ? '' : 'no'}`, id: 'sem-rem' }, money(Math.abs(rem)))),
+      h('div', { class: 'bar', role: 'img', 'aria-label': `Gastaste ${Math.round(pct * 100)}% de tu disponible` }, h('div', { class: `fill ${pct > 1 ? 'no' : pct >= 0.9 ? 'warn' : 'acc'}`, style: `width:${Math.min(100, pct * 100).toFixed(1)}%` })));
+    const st = !gs.length ? ['ok', 'Semana nueva: empiezas con todo tu disponible. Anota lo que gastes en lo flexible (súper, salidas, transporte).']
+      : pct > 1 ? ['no', `Gastaste ${Math.round(pct * 100)}% de tu disponible. Lo que pase de aquí sale de tu ahorro o de tu reserva; lo verás en tu cierre del mes.`]
+      : pct >= 0.9 ? ['warn', `Llevas ${Math.round(pct * 100)}% de tu disponible. Ya casi llegas al límite.`]
+      : ['ok', `Llevas ${Math.round(pct * 100)}% de tu disponible. Vas dentro de tu plan.`];
+    card.append(h('div', { class: `state ${st[0]}` }, st[1]));
+    if (disp <= 0) card.append(h('p', { class: 'note', style: 'color:var(--bad)' }, 'Tu plan no deja gasto flexible: tus fijos y tu ahorro suman todo tu ingreso. Ajústalo en Mi modelo.'));
+    card.append(h('div', { class: 'stats' },
+      h('div', { class: 'stat' }, h('span', {}, 'Disponible'), h('b', {}, money(disp))),
+      h('div', { class: 'stat' }, h('span', {}, 'Gastado'), h('b', { id: 'sem-gast' }, money(g))),
+      h('div', { class: 'stat' }, h('span', {}, 'Remanente'), h('b', { class: rem >= 0 ? '' : 'no' }, rem >= 0 ? money(rem) : `−${money(-rem)}`))));
+    // add form: only amount and what for
+    const mIn = h('input', { class: 'amt', id: 'g-monto', type: 'number', inputmode: 'decimal', min: '0', step: 'any', placeholder: '$ Monto', 'aria-label': 'Monto gastado' });
+    const cIn = h('input', { id: 'g-concepto', type: 'text', placeholder: '¿En qué?', 'aria-label': 'En qué se gastó', autocomplete: 'off', maxlength: '40' });
+    const recientes = [...new Set(S.gastos.slice(-40).reverse().map((x) => x.concepto))].slice(0, 5);
+    const form = h('form', { class: 'gform', novalidate: true, onsubmit: (e) => {
+      e.preventDefault();
+      const monto = Number(mIn.value), concepto = cIn.value.trim();
+      if (!(monto > 0)) { mIn.setAttribute('aria-invalid', 'true'); toast('Escribe cuánto gastaste.'); mIn.focus(); return; }
+      S.gastos.push({ id: `g${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`, fecha: today(), concepto: concepto || 'Sin concepto', monto });
+      save('gastos'); render();
+      const r = disp - sumaG(gastosDe(lun));
+      toast(r >= 0 ? `Anotado. Te quedan ${money(r)}.` : `Anotado. Te pasaste ${money(-r)}.`);
+      const nm = $('#g-monto'); if (nm) nm.focus();
+    } },
+      h('div', { class: 'grow' }, mIn, cIn),
+      recientes.length ? h('div', { class: 'sugs', 'aria-label': 'Conceptos recientes' }, recientes.map((c) => h('button', { type: 'button', class: 'sug', onclick: () => { cIn.value = c; mIn.focus(); } }, c))) : null,
+      h('button', { class: 'btn primary', type: 'submit' }, 'Agregar gasto'));
+    card.append(form, h('div', { class: 'grp' }, 'Gastos de la semana'));
+    card.append(h('div', { class: 'glist' }, !gs.length ? h('div', { class: 'note' }, 'Sin gastos registrados esta semana.')
+      : gs.slice().sort((a, b) => b.fecha.localeCompare(a.fecha) || S.gastos.indexOf(b) - S.gastos.indexOf(a)).map((x) => h('div', { class: 'git' },
+        h('span', { class: 'd' }, `${DIAS_L[new Date(x.fecha + 'T12:00:00Z').getUTCDay()].slice(0, 3)} ${+x.fecha.slice(8)}`), h('span', { class: 'c' }, x.concepto), h('span', { class: 'a' }, money(x.monto)),
+        h('button', { class: 'gdel', type: 'button', 'aria-label': `Borrar ${x.concepto}`, onclick: () => { S.gastos = S.gastos.filter((y) => y.id !== x.id); save('gastos'); toast(`Borraste ${x.concepto}.`); render(); } }, '✕')))));
+    return card;
+  }
+
+  // last week's result: information only, no decisions stored
+  function viewSemanaPasada() {
+    const lun = addDays(lunes(today()), -7), gs = gastosDe(lun);
+    if (!gs.length) return null;
+    const disp = disponibleDe(lun), g = sumaG(gs), rem = disp - g;
+    const card = h('section', { class: 'card', id: 'semana-pasada' }, h('div', { class: 'top' }, h('h2', {}, 'Tu semana pasada'), h('span', { class: 'note' }, rangoSem(lun))),
+      h('div', { class: 'mini3' }, h('div', {}, 'Disponible', h('b', {}, money(disp))), h('div', {}, 'Gastado', h('b', {}, money(g))), h('div', {}, 'Remanente', h('b', { class: rem >= 0 ? '' : 'no' }, rem >= 0 ? money(rem) : `−${money(-rem)}`))));
+    card.append(h('p', { class: 'note' }, rem >= 1
+      ? [h('span', { class: 'ok-t' }, `Te sobraron ${money(rem)}. `), 'Si lo transfieres a una de tus metas, lo verás en tu siguiente cierre cuando actualices sus saldos.']
+      : rem <= -1 ? [h('span', { class: 'no-t' }, `Te pasaste ${money(-rem)}. `), 'Eso salió de tu ahorro o de tu reserva; lo verás en tu cierre del mes.']
+      : 'Usaste exacto tu disponible.'));
+    return card;
+  }
+
+  // header shared by every tab
+  function cabecera() {
+    const sem = lunes(today());
+    return h('div', { class: 'head' }, h('span', { class: 'brand' }, 'Mental Finance'), h('span', { class: 'chip' }, `Semana del ${+sem.slice(8)} al ${corto(addDays(sem, 6))}`));
+  }
+  // Gastos tab: weekly log, leftover and last week's decision
+  function viewGastos() {
+    if (!(Number(S.modelo.ingresoMonto) > 0)) return [cabecera(), h('section', { class: 'card' }, h('h2', {}, 'Primero tu modelo'),
+      h('p', { class: 'note' }, 'Tu disponible de cada semana sale de tu plan. Captura tu ingreso, tu % de ahorro y tus fijos en Mi modelo.'),
+      h('div', { class: 'entry' }, h('button', { class: 'btn primary', onclick: () => go('modelo') }, 'Ir a Mi modelo')))];
+    const aviso = h('section', { class: 'aviso', id: 'aviso-gastos', role: 'note' }, h('span', { class: 'aviso-i', 'aria-hidden': 'true' }, '!'),
+      h('div', {}, h('b', {}, 'Es un registro de apoyo, no tu realidad.'),
+        h('p', {}, 'Aquí solo ves lo que tú anotas. No cambia tus saldos, metas ni cierres. Si olvidas anotar un gasto, en realidad te queda menos de lo que dice aquí.'),
+        h('p', {}, 'Lo que de verdad tienes lo confirman los saldos que capturas en tu cierre del mes.')));
+    return [cabecera(), aviso, viewSemanaPasada(), viewSemana(plan(S.modelo, today().slice(0, 7)))];
+  }
   // ---------------------------------------------------------- Hoy
   function viewHoy() {
     const hoy = today(), ym = hoy.slice(0, 7), P = plan(S.modelo, ym), sem = lunes(hoy);
     const f = S.vista === 'mes' ? 52 / 12 : 1, per = S.vista === 'mes' ? 'al mes' : 'por semana';
-    const head = h('div', { class: 'head' }, h('span', { class: 'brand' }, 'Mental Finance'), h('span', { class: 'chip' }, `Semana del ${+sem.slice(8)} al ${corto(addDays(sem, 6))}`));
+    const head = cabecera();
 
     // 1) the plan, as a personal income statement
     const sw = h('div', { class: 'switch', role: 'group', 'aria-label': 'Vista' }, [['sem', 'Semana'], ['mes', 'Mes']].map(([k, l]) => h('button', { type: 'button', 'aria-pressed': String(S.vista === k), onclick: () => { S.vista = k; save('vista'); render(); } }, l)));
@@ -686,7 +802,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
     if (Math.abs(pz.otros) <= tol) card.append(h('div', { class: 'verdict' }, markR({ cls: 'ok', ico: '✓' }), h('div', {}, h('b', { class: 'ok' }, 'Cuadra.'), ` Tus metas crecieron lo que apartaste (${money(pz.apartado)}).`)));
     else if (cs[sel].explica) card.append(h('div', { class: 'verdict' }, markR({ cls: 'ok', ico: '✓' }), h('div', {}, h('b', {}, 'Explicado: '), `${cs[sel].explica} (${pz.otros >= 0 ? '+' : '−'}${money(Math.abs(pz.otros))}).`, ' ', h('button', { class: 'btn ghost', onclick: () => { delete cs[sel].explica; save('cierres'); render(); } }, 'Cambiar'))));
     else {
-      const ops = pz.otros >= 0 ? ['Rendimientos de mis inversiones', 'Metí dinero que no anoté como apartado', 'Error en algún saldo'] : ['Saqué dinero de una meta', 'Bajó el valor de mi inversión', 'Aparté menos de lo que anoté', 'Error en algún saldo'];
+      const ops = pz.otros >= 0 ? ['Mandé lo que me sobró de mis semanas', 'Rendimientos de mis inversiones', 'Metí dinero que no anoté como apartado', 'Error en algún saldo'] : ['Saqué dinero de una meta', 'Bajó el valor de mi inversión', 'Aparté menos de lo que anoté', 'Error en algún saldo'];
       card.append(h('div', { class: 'ask' }, h('div', { class: 'verdict' }, markR({ cls: 'warn', ico: '?' }),
         h('div', {}, h('b', { class: 'warn' }, `Apartaste ${money(pz.apartado)}, pero tus metas ${pz.otros + pz.apartado >= 0 ? 'crecieron' : 'bajaron'} ${money(Math.abs(pz.otros + pz.apartado))}.`), ` ¿Qué explica la diferencia de ${money(Math.abs(pz.otros))}?`)),
         h('div', { class: 'opts' }, ops.concat('No sé').map((o) => h('button', { class: 'btn small', onclick: () => { cs[sel].explica = o; save('cierres'); render(); } }, o)))));
@@ -819,7 +935,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   const monthEndOf = (ym) => { const y = +ym.slice(0, 4), m = +ym.slice(5, 7); return `${ym}-${String(new Date(Date.UTC(y, m, 0)).getUTCDate()).padStart(2, '0')}`; };
 
   // ---------------------------------------------------------- Respaldo: your data lives only on this device, so keep a copy
-  const RESP_KEYS = ['modelo', 'metas', 'pagos', 'cierres', 'vista', 'planVer'];
+  const RESP_KEYS = ['modelo', 'metas', 'pagos', 'cierres', 'vista', 'planVer', 'gastos'];
   function respaldoJSON() {
     const data = {}; for (const k of RESP_KEYS) data[k] = S[k];
     return JSON.stringify({ app: 'mental-finance', version: 1, exportado: new Date().toISOString(), data }, null, 2);
@@ -840,7 +956,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
     const d = o && o.app === 'mental-finance' ? o.data : null;
     if (!d || !d.modelo) { toast('Ese archivo no es un respaldo de Mental Finance.'); return; }
     for (const k of RESP_KEYS) if (d[k] !== undefined) { S[k] = d[k]; save(k); }
-    S.metas = S.metas || []; S.pagos = S.pagos || {}; S.cierres = S.cierres || [];
+    S.metas = S.metas || []; S.pagos = S.pagos || {}; S.cierres = S.cierres || []; S.gastos = S.gastos || [];
     toast('Respaldo importado.'); go('hoy');
   }
   function viewRespaldo() {
@@ -931,7 +1047,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   document.querySelectorAll('.tabbar button').forEach((b) => b.addEventListener('click', () => go(b.dataset.tab)));
   function render() {
     document.querySelectorAll('.tabbar button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === S.tab)));
-    $('#app').replaceChildren(...[].concat(S.tab === 'modelo' ? viewModelo() : viewHoy()).filter(Boolean));
+    $('#app').replaceChildren(...[].concat(S.tab === 'modelo' ? viewModelo() : S.tab === 'gastos' ? viewGastos() : viewHoy()).filter(Boolean));
   }
   render();
 })();
