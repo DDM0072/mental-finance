@@ -254,6 +254,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   const daysBetween = (a, b) => Math.round((new Date(b + 'T12:00:00Z') - new Date(a + 'T12:00:00Z')) / 864e5);
   const today = () => { const t = new Date(); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; };
   const lunes = (d) => { const k = (new Date(d + 'T12:00:00Z').getUTCDay() + 6) % 7; return addDays(d, -k); };
+  // first day of the user's spending week (0 = domingo … 6 = sábado); default lunes
+  const diaInicio = () => (S.modelo.inicioSemana != null ? Number(S.modelo.inicioSemana) : 1);
+  const inicioSem = (d) => { const k = (new Date(d + 'T12:00:00Z').getUTCDay() - diaInicio() + 7) % 7; return addDays(d, -k); };
   const toast = (m) => { const t = $('#toast'); t.textContent = m; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => { t.hidden = true; }, 2600); };
 
   // ---------------------------------------------------------- model
@@ -411,22 +414,23 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   }
 
   // ---------------------------------------------------------- Tu semana: registro sencillo del gasto flexible
-  // Registro AUXILIAR: solo informa. Disponible = gasto flexible semanal del plan; se reinicia cada lunes.
+  // Registro AUXILIAR: solo informa. Disponible = gasto flexible semanal del plan; se reinicia el día de inicio que elige el usuario (modelo.inicioSemana, default lunes).
   // No mueve saldos, no guarda destinos ni colchón y no entra al cierre: la realidad se registra solo con saldos.
   // S.gastos = [{id, fecha, concepto, monto}]
   const fin = (lun) => addDays(lun, 6);
   const gastosDe = (lun) => S.gastos.filter((g) => g.fecha >= lun && g.fecha <= fin(lun));
   const sumaG = (gs) => gs.reduce((a, g) => a + Number(g.monto || 0), 0);
   const disponibleDe = (lun) => Math.max(0, plan(S.modelo, lun.slice(0, 7)).flexible);
-  const rangoSem = (lun) => `lun ${corto(lun)} – dom ${corto(fin(lun))}`;
+  const diaCorto = (d) => DIAS_L[new Date(d + 'T12:00:00Z').getUTCDay()].slice(0, 3);
+  const rangoSem = (lun) => `${diaCorto(lun)} ${corto(lun)} – ${diaCorto(fin(lun))} ${corto(fin(lun))}`;
 
   function viewSemana(P) {
-    const hoy = today(), lun = lunes(hoy);
+    const hoy = today(), lun = inicioSem(hoy);
     const disp = Math.max(0, P.flexible), gs = gastosDe(lun), g = sumaG(gs), rem = disp - g, pct = disp > 0 ? g / disp : (g > 0 ? 2 : 0);
     const card = h('section', { class: 'card', id: 'semana' }, h('div', { class: 'top' }, h('h2', {}, 'Tu semana'), h('span', { class: 'note' }, rangoSem(lun))));
     card.append(h('div', {}, h('div', { class: 'k' }, rem >= 0 ? 'Te queda esta semana' : 'Te pasaste esta semana'), h('div', { class: `big ${rem >= 0 ? '' : 'no'}`, id: 'sem-rem' }, money(Math.abs(rem)))),
       h('div', { class: 'bar', role: 'img', 'aria-label': `Gastaste ${Math.round(pct * 100)}% de tu disponible` }, h('div', { class: `fill ${pct > 1 ? 'no' : pct >= 0.9 ? 'warn' : 'acc'}`, style: `width:${Math.min(100, pct * 100).toFixed(1)}%` })));
-    const st = !gs.length ? ['ok', 'Semana nueva: empiezas con todo tu disponible. Anota lo que gastes en lo flexible (súper, salidas, transporte).']
+    const st = !gs.length ? ['ok', `Semana nueva: empiezas con todo tu disponible. Tu semana de gastos va de ${DIAS_L[diaInicio()]} a ${DIAS_L[(diaInicio() + 6) % 7]}; puedes cambiarlo en Mi modelo.`]
       : pct > 1 ? ['no', `Gastaste ${Math.round(pct * 100)}% de tu disponible. Lo que pase de aquí sale de tu ahorro o de tu reserva; lo verás en tu cierre del mes.`]
       : pct >= 0.9 ? ['warn', `Llevas ${Math.round(pct * 100)}% de tu disponible. Ya casi llegas al límite.`]
       : ['ok', `Llevas ${Math.round(pct * 100)}% de tu disponible. Vas dentro de tu plan.`];
@@ -463,7 +467,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 
   // last week's result: information only, no decisions stored
   function viewSemanaPasada() {
-    const lun = addDays(lunes(today()), -7), gs = gastosDe(lun);
+    const lun = addDays(inicioSem(today()), -7), gs = gastosDe(lun);
     if (!gs.length) return null;
     const disp = disponibleDe(lun), g = sumaG(gs), rem = disp - g;
     const card = h('section', { class: 'card', id: 'semana-pasada' }, h('div', { class: 'top' }, h('h2', {}, 'Tu semana pasada'), h('span', { class: 'note' }, rangoSem(lun))),
@@ -477,8 +481,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 
   // header shared by every tab
   function cabecera() {
-    const sem = lunes(today());
-    return h('div', { class: 'head' }, h('span', { class: 'brand' }, 'Mental Finance'), h('span', { class: 'chip' }, `Semana del ${+sem.slice(8)} al ${corto(addDays(sem, 6))}`));
+    const sem = inicioSem(today());
+    return h('div', { class: 'head' }, h('span', { class: 'brand' }, 'Mental Finance'), h('span', { class: 'chip' }, `Semana del ${sem.slice(5, 7) === addDays(sem, 6).slice(5, 7) ? +sem.slice(8) : corto(sem)} al ${corto(addDays(sem, 6))}`));
   }
   // Gastos tab: weekly log, leftover and last week's decision
   function viewGastos() {
@@ -493,7 +497,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   }
   // ---------------------------------------------------------- Hoy
   function viewHoy() {
-    const hoy = today(), ym = hoy.slice(0, 7), P = plan(S.modelo, ym), sem = lunes(hoy);
+    const hoy = today(), ym = hoy.slice(0, 7), P = plan(S.modelo, ym), sem = inicioSem(hoy);
     const f = S.vista === 'mes' ? 52 / 12 : 1, per = S.vista === 'mes' ? 'al mes' : 'por semana';
     const head = cabecera();
 
@@ -789,14 +793,17 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
     const pz = puente(cs[sel - 1], cs[sel]);
     const esUltimo = sel === cs.length - 1;
     const tol = Math.max(200, pz.apartado * 0.05);
-    const planPeriodo = P.ahorro * pz.semanas, dPat = pz.pFin - pz.pIni, g = rango(dPat, planPeriodo);
+    // with cash reserve captured on both closes, card debt is netted against the cash meant to pay it
+    const conRes = pz.a.reserva != null && pz.b.reserva != null, dRes = conRes ? pz.b.reserva - pz.a.reserva : 0;
+    const planPeriodo = P.ahorro * pz.semanas, dPat = pz.pFin - pz.pIni + dRes, g = rango(dPat, planPeriodo);
     card.append(h('p', { class: 'note', style: 'margin-top:-6px' }, `Del ${corto(pz.a.fecha)} al ${corto(pz.b.fecha)} ${pz.b.fecha.slice(0, 4)}${esUltimo ? '' : ' · cierre anterior'}`),
-      h('div', { class: 'verdict' }, markR(g), h('div', {}, h('b', { class: g.cls }, `Tu ahorro trabajado ${dPat >= 0 ? 'creció' : 'bajó'} ${money(Math.abs(dPat))}.`), ` Tu plan para ese periodo: ${money(planPeriodo)}.`)));
-    const items = [{ l: ['Al inicio'], v: pz.pIni, tot: true, c: 'var(--accent)' }, { l: ['Apartaste'], v: pz.apartado, c: 'var(--good)' }];
+      h('div', { class: 'verdict' }, markR(g), h('div', {}, h('b', { class: g.cls }, `${conRes ? 'Tu patrimonio líquido' : 'Tu ahorro trabajado'} ${dPat >= 0 ? 'creció' : 'bajó'} ${money(Math.abs(dPat))}.`), ` Tu plan para ese periodo: ${money(planPeriodo)}.`)));
+    const items = [{ l: ['Al inicio'], v: pz.pIni + (conRes ? pz.a.reserva : 0), tot: true, c: 'var(--accent)' }, { l: ['Apartaste'], v: pz.apartado, c: 'var(--good)' }];
     if (Math.abs(pz.otros) >= 1) items.push({ l: ['Diferencia', 'en metas'], v: pz.otros, c: pz.otros >= 0 ? 'var(--good)' : 'var(--warn)' });
     if (Math.abs(pz.dDeuda) >= 1) items.push({ l: [pz.dDeuda > 0 ? 'Más' : 'Menos', 'deuda'], v: -pz.dDeuda, c: pz.dDeuda > 0 ? 'var(--bad)' : 'var(--good)' });
+    if (conRes && Math.abs(dRes) >= 1) items.push({ l: [dRes >= 0 ? 'Más' : 'Menos', 'reserva'], v: dRes, c: dRes >= 0 ? 'var(--good)' : 'var(--warn)' });
     if (Math.abs(pz.nuevas - pz.quitadas) >= 1) items.push({ l: ['Metas', 'nuevas'], v: pz.nuevas - pz.quitadas, c: 'var(--muted)' });
-    items.push({ l: ['Al cierre'], v: pz.pFin, tot: true, c: 'var(--accent)' });
+    items.push({ l: ['Al cierre'], v: pz.pFin + (conRes ? pz.b.reserva : 0), tot: true, c: 'var(--accent)' });
     card.append(puenteChart(items));
     // 1) does what you set aside match how much your goals grew?
     if (Math.abs(pz.otros) <= tol) card.append(h('div', { class: 'verdict' }, markR({ cls: 'ok', ico: '✓' }), h('div', {}, h('b', { class: 'ok' }, 'Cuadra.'), ` Tus metas crecieron lo que apartaste (${money(pz.apartado)}).`)));
@@ -809,12 +816,23 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
     }
     // 2) consumer debt: the blind spot
     const tolD = Math.max(300, P.ingreso * 52 / 12 * 0.02);
-    if (pz.dDeuda > tolD) card.append(h('div', { class: 'verdict' }, markR({ cls: 'no', ico: '!' }), h('div', {}, h('b', { class: 'no' }, `Tu deuda de tarjetas subió ${money(pz.dDeuda)}.`), ' Gastaste con tarjeta más de lo que pagaste: es dinero prestado de los próximos meses y le resta a tu ahorro trabajado. Si fue una compra a meses, regístrala en Mi modelo con su fecha de fin.')));
-    else if (pz.dDeuda < -tolD) card.append(h('div', { class: 'verdict' }, markR({ cls: 'ok', ico: '✓' }), h('div', {}, h('b', { class: 'ok' }, `Bajaste tu deuda de tarjetas ${money(-pz.dDeuda)}.`), ' Deber menos también es avanzar; suma a tu ahorro trabajado.')));
-    else card.append(h('div', { class: 'verdict' }, markR({ cls: 'ok', ico: '✓' }), h('div', {}, h('b', { class: 'ok' }, 'Tu deuda de tarjetas se mantuvo.'), ` ${money(deudaConsumo(cs[sel]))}, sin contar ${money(msiPendiente(cs[sel].fecha))} de compras a meses.`)));
+    const V = (cls, ico, b, t) => h('div', { class: 'verdict' }, markR({ cls, ico }), h('div', {}, h('b', { class: cls }, b), t));
+    if (pz.dDeuda > tolD) {
+      const sinCubrir = pz.dDeuda - Math.max(0, dRes);
+      if (conRes && sinCubrir <= tolD) card.append(V('ok', '✓', `Tu deuda de tarjetas subió ${money(pz.dDeuda)}, pero tu reserva también (${money(dRes)}).`, ' Está cubierta con efectivo que ya tienes: paga tu tarjeta con ese dinero. No es una pérdida.'));
+      else if (conRes) card.append(V('no', '!', `Tu deuda subió ${money(pz.dDeuda)} y tu reserva ${dRes >= 0 ? `solo ${money(dRes)}` : `bajó ${money(-dRes)}`}.`, ` Hay ${money(sinCubrir)} que no tienes en efectivo: gastaste con tarjeta más de lo planeado. Si fue una compra a meses, regístrala en Mi modelo con su fecha de fin.`));
+      else card.append(V('no', '!', `Tu deuda de tarjetas subió ${money(pz.dDeuda)}.`, ' Si tienes el efectivo para pagarla en tu cuenta de débito, captura tu reserva en el cierre y lo tomo en cuenta. Si no, gastaste con tarjeta más de lo que pagaste. Si fue una compra a meses, regístrala en Mi modelo.'));
+    } else if (pz.dDeuda < -tolD) {
+      if (conRes && dRes <= pz.dDeuda + tolD) card.append(V('ok', '=', `Pagaste ${money(-pz.dDeuda)} de tarjeta con tu reserva.`, ' Tu patrimonio no cambia por eso: bajó tu deuda y bajó tu efectivo en lo mismo.'));
+      else card.append(V('ok', '✓', `Bajaste tu deuda de tarjetas ${money(-pz.dDeuda)}.`, ' Deber menos también es avanzar.'));
+    } else card.append(V('ok', '✓', 'Tu deuda de tarjetas se mantuvo.', ` ${money(deudaConsumo(cs[sel]))}, sin contar ${money(msiPendiente(cs[sel].fecha))} de compras a meses.`));
+    // 3) where did the saving stay? growth that stays in the debit account is not "set aside"
+    if (conRes) { const enMetas = pz.apartado + pz.otros; if (dPat >= planPeriodo * 0.7 && enMetas < planPeriodo * 0.7 && dRes > Math.max(500, planPeriodo * 0.3))
+      card.append(V('warn', '≈', `De ese crecimiento, ${money(Math.max(0, enMetas))} está en tus metas y ${money(dRes)} se quedó en tu cuenta de débito.`, ' Es patrimonio, pero no está apartado: muévelo a tus metas para que no se gaste.')); }
     { const pt = porTarjeta(pz); if (pt) card.append(pt); }
     { const rb = reservaBlock(P, cs[sel], cs[sel - 1]); if (rb) card.append(rb); }
-    card.append(h('p', { class: 'note' }, 'Ahorro trabajado = lo que tienes en tus metas − lo que debes en tarjetas (sin las compras a meses que ya están en tus fijos).'));
+    card.append(h('p', { class: 'note' }, conRes ? 'Patrimonio líquido = metas + reserva − tarjetas (sin las compras a meses de tus fijos). Así, una deuda que ya tienes cubierta con efectivo no cuenta como pérdida.' : 'Ahorro trabajado = lo que tienes en tus metas − lo que debes en tarjetas (sin las compras a meses que ya están en tus fijos). Captura tu reserva para tomar en cuenta el efectivo con el que pagarás tus tarjetas.'),
+      h('p', { class: 'tip' }, h('b', {}, 'Tip: '), 'haz tus cierres siempre el mismo día y en el mismo momento de tu ciclo (por ejemplo, antes de cobrar). Así tus cierres se pueden comparar entre sí.'));
     if (cs.length >= 3) card.append(historialCierres(P, sel));
     card.append(btn);
     return card;
@@ -822,16 +840,17 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 
   // every close as a row (tap to see its bridge) + working net worth vs the plan since your first close
   function historialCierres(P, sel) {
-    const cs = S.cierres, base = cs[0], pat = (c) => sumaMetas(c) - deudaConsumo(c);
+    const cs = S.cierres, base = cs[0], useRes = cs.every((c) => c.reserva != null), pat = (c) => sumaMetas(c) - deudaConsumo(c) + (useRes ? c.reserva : 0);
+    const semanales = cs.length > 1 && daysBetween(cs.at(-2).fecha, cs.at(-1).fecha) < 20;
     const filas = [];
     for (let i = cs.length - 1; i >= 1; i--) {
-      const pz = puente(cs[i - 1], cs[i]), d = pz.pFin - pz.pIni, plan = P.ahorro * pz.semanas, g = rango(d, plan);
+      const pz = puente(cs[i - 1], cs[i]), d = pat(cs[i]) - pat(cs[i - 1]), plan = P.ahorro * pz.semanas, g = rango(d, plan), dR = useRes ? cs[i].reserva - cs[i - 1].reserva : 0;
       const tol = Math.max(200, pz.apartado * 0.05), tolD = Math.max(300, P.ingreso * 52 / 12 * 0.02);
       const cu = Math.abs(pz.otros) <= tol ? { cls: 'ok', ico: '✓', t: 'Cuadra' } : cs[i].explica ? { cls: 'ok', ico: '✓', t: 'Explicado' } : { cls: 'warn', ico: '?', t: 'Sin explicar' };
-      const de = pz.dDeuda > tolD ? { cls: 'no', ico: '↑', t: 'Deuda subió' } : pz.dDeuda < -tolD ? { cls: 'ok', ico: '↓', t: 'Deuda bajó' } : { cls: 'na', ico: '=', t: 'Deuda igual' };
-      const mes = MESL[(+cs[i].fecha.slice(5, 7) + (+cs[i].fecha.slice(8) <= 10 ? 10 : 11)) % 12];
+      const de = pz.dDeuda > tolD && useRes && pz.dDeuda - Math.max(0, dR) <= tolD ? { cls: 'ok', ico: '=', t: 'Deuda cubierta con efectivo' } : pz.dDeuda > tolD ? { cls: 'no', ico: '↑', t: 'Deuda subió' } : pz.dDeuda < -tolD ? { cls: 'ok', ico: '↓', t: 'Deuda bajó' } : { cls: 'na', ico: '=', t: 'Deuda igual' };
+      const mes = semanales ? corto(cs[i].fecha) : MESL[(+cs[i].fecha.slice(5, 7) + (+cs[i].fecha.slice(8) <= 10 ? 10 : 11)) % 12];
       filas.push(h('button', { class: `cfila ${i === sel ? 'on' : ''}`, 'aria-pressed': String(i === sel), onclick: () => { S.cierreSel = i; render(); } },
-        h('span', { class: 'cm', title: mes }, `${mes.charAt(0).toUpperCase()}${mes.slice(1, 3)}`),
+        h('span', { class: 'cm', title: mes }, semanales ? mes : `${mes.charAt(0).toUpperCase()}${mes.slice(1, 3)}`),
         h('span', { class: `cd num ${g.cls}` }, `${d >= 0 ? '+' : '−'}${money(Math.abs(d))}`),
         h('span', { class: 'cc' }, h('span', { class: `mark ${g.cls}`, title: g.txt, 'aria-label': `Plan: ${g.txt}` }, g.ico)),
         h('span', { class: 'cc' }, h('span', { class: `mark ${cu.cls}`, title: cu.t, 'aria-label': cu.t }, cu.ico)),
@@ -852,8 +871,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
     }, 'trend', 150);
     const brecha = pat(cs.at(-1)) - (pat(base) + P.ahorro * daysBetween(base.fecha, cs.at(-1).fecha) / 7);
     return h('div', { class: 'hcierres' }, h('div', { class: 'grp' }, 'Tus cierres'),
-      h('div', { class: 'cfilas' }, h('div', { class: 'chead' }, h('span', {}, 'Mes'), h('span', {}, 'Cambio'), h('span', { class: 'cc' }, 'Plan'), h('span', { class: 'cc' }, 'Cuadre'), h('span', { class: 'cc' }, 'Deuda')), filas),
-      h('div', { class: 'grp', style: 'padding-top:10px' }, 'Tu ahorro trabajado contra tu plan'),
+      h('div', { class: 'cfilas' }, h('div', { class: 'chead' }, h('span', {}, semanales ? 'Cierre' : 'Mes'), h('span', {}, 'Cambio'), h('span', { class: 'cc' }, 'Plan'), h('span', { class: 'cc' }, 'Cuadre'), h('span', { class: 'cc' }, 'Deuda')), filas),
+      h('div', { class: 'grp', style: 'padding-top:10px' }, useRes ? 'Tu patrimonio líquido contra tu plan' : 'Tu ahorro trabajado contra tu plan'),
       chart,
       h('div', { class: 'legend' }, h('span', {}, h('i', { style: 'border-color:var(--accent);border-top-width:3px' }), 'Real'), h('span', {}, h('i', { style: 'border-color:var(--muted);border-top-style:dashed' }), 'Si hubieras seguido tu plan')),
       h('p', { class: 'note' }, brecha >= 0 ? `Vas ${money(brecha)} arriba de tu plan desde el ${largo(base.fecha)}.` : `Vas ${money(-brecha)} abajo de tu plan desde el ${largo(base.fecha)}.`));
@@ -995,6 +1014,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
         h('label', { class: 'fld' }, 'Cada cuándo', sel(m.ingresoFrecuencia, (v) => { upd(() => { m.ingresoFrecuencia = v; }); render(); }))),
       h('label', { class: 'fld' }, '% de tu ingreso para ahorro e inversión', h('input', { type: 'number', inputmode: 'decimal', id: 'm-pct', min: '0', max: '100', value: String(Math.round(m.ahorroPct * 1000) / 10), oninput: (e) => upd(() => { m.ahorroPct = Number(e.target.value || 0) / 100; }) })),
       diaPagoField(m),
+      h('label', { class: 'fld' }, '¿Qué día empieza tu semana de gastos?', h('select', { id: 'm-inicio', onchange: (e) => upd(() => { m.inicioSemana = Number(e.target.value); }) }, DIAS_L.map((n, i) => h('option', { value: String(i), selected: diaInicio() === i ? true : null }, n.charAt(0).toUpperCase() + n.slice(1)))),
+        h('span', { class: 'hint' }, 'Tu disponible de la pestaña Gastos se reinicia ese día. Te conviene el día que te pagan.')),
       result);
     const list = h('div', { class: 'fl' }, (m.fijos || []).map((f, i) => {
       const anual = () => Number(f.monto || 0) * (FREQ[f.frecuencia] || 12);
