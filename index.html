@@ -184,6 +184,11 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .tabbar button[aria-selected="true"] { color: var(--ink); background: var(--track); }
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(76px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 9px 14px; border-radius: 10px; font-size: 0.88rem; max-width: calc(100% - 32px); z-index: 4; }
 /* Tu semana: weekly flexible-spending log */
+.ohead, .ofila { display: grid; grid-template-columns: minmax(0, 1fr) 7rem 2rem; gap: 8px; align-items: center; }
+.ohead { font-size: .72rem; color: var(--muted); }
+.ofila { padding: 6px 0; border-top: 1px solid var(--line); }
+.ofila input { width: 100%; font-size: .95rem; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); min-width: 0; font-variant-numeric: tabular-nums; }
+.ofecha { font-weight: 600; } .opct { font-weight: 700; }
 .aviso { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: 16px; background: var(--warn-soft); border: 1px solid var(--warn); color: var(--ink); }
 .aviso b { display: block; font-size: 1.05rem; font-weight: 700; line-height: 1.35; }
 .aviso p { margin: 6px 0 0; font-size: 0.95rem; line-height: 1.45; }
@@ -290,8 +295,30 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
     get(k, d) { try { const v = localStorage.getItem('mf.' + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem('mf.' + k, JSON.stringify(v)); } catch (e) { /* preview without storage */ } },
   };
-  const S = { modelo: store.get('modelo', seed.modelo), metas: store.get('metas', null), abierta: null, pagos: store.get('pagos', {}), cierres: store.get('cierres', []), cierreSel: null, vista: store.get('vista', 'sem'), planVer: store.get('planVer', 'tabla') === 'cascada' ? 'cascada' : 'tabla', tab: 'hoy', editando: null, abierto: null, ultimoRespaldo: store.get('ultimoRespaldo', null), gastos: store.get('gastos', []) };
-  const save = (k) => store.set(k, S[k]);
+  const S = { modelo: store.get('modelo', seed.modelo), metas: store.get('metas', null), abierta: null, pagos: store.get('pagos', {}), cierres: store.get('cierres', []), cierreSel: null, vista: store.get('vista', 'sem'), planVer: store.get('planVer', 'tabla') === 'cascada' ? 'cascada' : 'tabla', tab: 'hoy', editando: null, abierto: null, ultimoRespaldo: store.get('ultimoRespaldo', null), gastos: store.get('gastos', []), planHist: store.get('planHist', []), _base: null };
+  const save = (k) => { if (k === 'modelo') registraPlan(); store.set(k, S[k]); };
+  // ---- plan history: each record is judged against the target in force on its date
+  // S.planHist = [{desde: 'YYYY-MM-DD' ('0000-01-01' = since the beginning), ingresoMonto, ingresoFrecuencia, ahorroPct, fijos}], sorted; the last one mirrors the current model
+  const clavePlan = (m) => ({ ingresoMonto: Number(m.ingresoMonto || 0), ingresoFrecuencia: m.ingresoFrecuencia, ahorroPct: Number(m.ahorroPct || 0),
+    fijos: (m.fijos || []).map((f) => ({ concepto: f.concepto, monto: Number(f.monto || 0), frecuencia: f.frecuencia, tipo: f.tipo, inicia: f.inicia || null, termina: f.termina || null, esAhorro: !!f.esAhorro })) });
+  function registraPlan() {
+    if (S._base == null) return;
+    const cur = clavePlan(S.modelo), cj = JSON.stringify(cur), H = S.planHist, last = H.at(-1);
+    if (cj === (last ? JSON.stringify(clavePlan(last)) : S._base)) return;
+    const hoy = today();
+    if (!H.length) H.push(Object.assign({ desde: '0000-01-01' }, JSON.parse(S._base)));
+    if (H.at(-1).desde === hoy) Object.assign(H.at(-1), cur); else H.push(Object.assign({ desde: hoy }, cur));
+    S._base = cj; store.set('planHist', H);
+  }
+  const modeloAt = (d) => { const H = S.planHist; if (!H.length) return S.modelo; let e = H[0]; for (const x of H) if (x.desde <= d) e = x; return Object.assign({}, S.modelo, e); };
+  // target saving between two dates (a excluded, b included), day by day with the target of each day
+  function planEntre(a, b) {
+    if (!S.planHist.length) return plan(S.modelo, b.slice(0, 7)).ahorro * daysBetween(a, b) / 7;
+    let tot = 0; const memo = {};
+    for (let d = addDays(a, 1); d <= b; d = addDays(d, 1)) { const m = modeloAt(d), k = (m.desde || '') + d.slice(0, 7); if (memo[k] == null) memo[k] = plan(m, d.slice(0, 7)).ahorro / 7; tot += memo[k]; }
+    return tot;
+  }
+  const porPagoAt = (d) => { const m = modeloAt(d); return plan(m, d.slice(0, 7)).ahorro * 52 / (FREQ[m.ingresoFrecuencia] || 52); };
   if (!S.metas) {
     S.metas = [];
     const old = store.get('meta', null), ap = store.get('apartados', {});
@@ -306,6 +333,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
     for (const f of S.modelo.fijos) { const sd = (seed.modelo.fijos || []).find((x) => x.concepto === f.concepto); f.tipo = sd ? sd.tipo : f.deuda ? 'discrecional' : 'esencial'; if (sd && sd.esAhorro) f.esAhorro = true; delete f.deuda; }
     save('modelo');
   }
+  S._base = JSON.stringify(clavePlan(S.modelo));   // from here on, model changes are recorded with their date
 
   // ---------------------------------------------------------- charts (SVG drawn at the real width, redrawn on resize)
   const NS = 'http://www.w3.org/2000/svg';
@@ -398,16 +426,16 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
     } else {
       const v = ult ? S.pagos[ult] : null;
       if (v != null) {
-        const g = rango(v, porPago);
+        const meta = porPagoAt(ult), g = rango(v, meta);
         card.append(h('div', { class: 'top' }, h('span', { class: 'k' }, 'Día de pago'), h('button', { class: 'btn ghost', onclick: () => { delete S.pagos[ult]; save('pagos'); render(); } }, 'Corregir')),
-          h('div', { class: 'verdict' }, markR(g), h('div', {}, h('b', { class: g.cls }, `${g.txt}.`), ` El ${conDiaL(ult)} apartaste ${money(v)} de ${money(porPago)}.`)));
+          h('div', { class: 'verdict' }, markR(g), h('div', {}, h('b', { class: g.cls }, `${g.txt}.`), ` El ${conDiaL(ult)} apartaste ${money(v)} de ${money(meta)}.`)));
       } else card.append(h('div', { class: 'k' }, 'Día de pago'));
       if (proximo) card.append(h('div', { class: 'pago-q' }, `Próximo: ${conDiaL(proximo)}`), h('p', { class: 'note' }, `Ese día aparta ${money(porPago)} antes de gastar. Te lo recuerdo aquí.`), tipPago());
     }
     // last paydays
     const ult8 = pasados.slice(-8);
     if (ult8.length) card.append(h('div', { class: 'dots', role: 'list', 'aria-label': 'Tus últimos días de pago' }, ult8.map((d) => {
-      const v = S.pagos[d], g = v == null ? { cls: 'na', ico: '·', txt: 'Sin registro' } : rango(v, porPago);
+      const v = S.pagos[d], g = v == null ? { cls: 'na', ico: '·', txt: 'Sin registro' } : rango(v, porPagoAt(d));
       return h('div', { class: 'dot', role: 'listitem', title: `${corto(d)}: ${v == null ? 'sin registro' : money(v)}` }, h('span', { class: `mark ${g.cls}`, 'aria-label': g.txt }, g.ico), h('span', {}, corto(d).replace(' ', ' ')));
     })));
     return card;
@@ -420,7 +448,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   const fin = (lun) => addDays(lun, 6);
   const gastosDe = (lun) => S.gastos.filter((g) => g.fecha >= lun && g.fecha <= fin(lun));
   const sumaG = (gs) => gs.reduce((a, g) => a + Number(g.monto || 0), 0);
-  const disponibleDe = (lun) => Math.max(0, plan(S.modelo, lun.slice(0, 7)).flexible);
+  const disponibleDe = (lun) => Math.max(0, plan(modeloAt(lun), lun.slice(0, 7)).flexible);
   const diaCorto = (d) => DIAS_L[new Date(d + 'T12:00:00Z').getUTCDay()].slice(0, 3);
   const rangoSem = (lun) => `${diaCorto(lun)} ${corto(lun)} – ${diaCorto(fin(lun))} ${corto(fin(lun))}`;
 
@@ -699,7 +727,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   }
   const sumaMetas = (c) => Object.values(c.metas).reduce((a, v) => a + v, 0);
   // recomputed with your current fixed costs: registering a purchase later also fixes past closes
-  const deudaConsumo = (c) => c.deuda - msiPendiente(c.fecha);
+  // never below zero: a card balance smaller than the pending installments means those installments are not on the card yet
+  const deudaConsumo = (c) => Math.max(0, c.deuda - msiPendiente(c.fecha));
   function puente(a, b) {
     const comunes = Object.keys(b.metas).filter((id) => a.metas[id] != null);
     const nuevas = Object.keys(b.metas).filter((id) => a.metas[id] == null).reduce((s, id) => s + b.metas[id], 0);
@@ -795,7 +824,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
     const tol = Math.max(200, pz.apartado * 0.05);
     // with cash reserve captured on both closes, card debt is netted against the cash meant to pay it
     const conRes = pz.a.reserva != null && pz.b.reserva != null, dRes = conRes ? pz.b.reserva - pz.a.reserva : 0;
-    const planPeriodo = P.ahorro * pz.semanas, dPat = pz.pFin - pz.pIni + dRes, g = rango(dPat, planPeriodo);
+    const planPeriodo = planEntre(pz.a.fecha, pz.b.fecha), dPat = pz.pFin - pz.pIni + dRes, g = rango(dPat, planPeriodo);
     card.append(h('p', { class: 'note', style: 'margin-top:-6px' }, `Del ${corto(pz.a.fecha)} al ${corto(pz.b.fecha)} ${pz.b.fecha.slice(0, 4)}${esUltimo ? '' : ' · cierre anterior'}`),
       h('div', { class: 'verdict' }, markR(g), h('div', {}, h('b', { class: g.cls }, `${conRes ? 'Tu patrimonio líquido' : 'Tu ahorro trabajado'} ${dPat >= 0 ? 'creció' : 'bajó'} ${money(Math.abs(dPat))}.`), ` Tu plan para ese periodo: ${money(planPeriodo)}.`)));
     const items = [{ l: ['Al inicio'], v: pz.pIni + (conRes ? pz.a.reserva : 0), tot: true, c: 'var(--accent)' }, { l: ['Apartaste'], v: pz.apartado, c: 'var(--good)' }];
@@ -844,7 +873,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
     const semanales = cs.length > 1 && daysBetween(cs.at(-2).fecha, cs.at(-1).fecha) < 20;
     const filas = [];
     for (let i = cs.length - 1; i >= 1; i--) {
-      const pz = puente(cs[i - 1], cs[i]), d = pat(cs[i]) - pat(cs[i - 1]), plan = P.ahorro * pz.semanas, g = rango(d, plan), dR = useRes ? cs[i].reserva - cs[i - 1].reserva : 0;
+      const pz = puente(cs[i - 1], cs[i]), d = pat(cs[i]) - pat(cs[i - 1]), plan = planEntre(cs[i - 1].fecha, cs[i].fecha), g = rango(d, plan), dR = useRes ? cs[i].reserva - cs[i - 1].reserva : 0;
       const tol = Math.max(200, pz.apartado * 0.05), tolD = Math.max(300, P.ingreso * 52 / 12 * 0.02);
       const cu = Math.abs(pz.otros) <= tol ? { cls: 'ok', ico: '✓', t: 'Cuadra' } : cs[i].explica ? { cls: 'ok', ico: '✓', t: 'Explicado' } : { cls: 'warn', ico: '?', t: 'Sin explicar' };
       const de = pz.dDeuda > tolD && useRes && pz.dDeuda - Math.max(0, dR) <= tolD ? { cls: 'ok', ico: '=', t: 'Deuda cubierta con efectivo' } : pz.dDeuda > tolD ? { cls: 'no', ico: '↑', t: 'Deuda subió' } : pz.dDeuda < -tolD ? { cls: 'ok', ico: '↓', t: 'Deuda bajó' } : { cls: 'na', ico: '=', t: 'Deuda igual' };
@@ -858,7 +887,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
     }
     // trend: real working net worth at each close vs base + plan
     const chart = mountChart((box, W) => {
-      const pts = cs.map((c) => ({ x: daysBetween(base.fecha, c.fecha) / 7, real: pat(c), plan: pat(base) + P.ahorro * daysBetween(base.fecha, c.fecha) / 7 }));
+      const pts = cs.map((c) => ({ x: daysBetween(base.fecha, c.fecha) / 7, real: pat(c), plan: pat(base) + planEntre(base.fecha, c.fecha) }));
       const all = pts.flatMap((p) => [p.real, p.plan]), lo = Math.min(...all), hi = Math.max(...all), pad = (hi - lo) * 0.15 || 1000;
       const H = 150, T = 12, B = 22, L = 4, RG = 46, pw = W - L - RG, ph = H - T - B, xmax = pts.at(-1).x || 1;
       const X = (x) => L + x / xmax * pw, Y = (v) => T + ph - (v - (lo - pad)) / (hi - lo + 2 * pad) * ph;
@@ -869,7 +898,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
       pts.forEach((p, k) => { svg.append(sv('circle', { cx: X(p.x), cy: Y(p.real), r: k === pts.length - 1 ? 5 : 3.5, fill: 'var(--accent)', stroke: 'var(--panel)', 'stroke-width': 2 })); svg.append(sv('text', { x: k === 0 ? L : k === pts.length - 1 ? L + pw : X(p.x), y: H - 6, class: 'tk', 'text-anchor': k === 0 ? 'start' : k === pts.length - 1 ? 'end' : 'middle' }, corto(cs[k].fecha))); });
       box.replaceChildren(svg);
     }, 'trend', 150);
-    const brecha = pat(cs.at(-1)) - (pat(base) + P.ahorro * daysBetween(base.fecha, cs.at(-1).fecha) / 7);
+    const brecha = pat(cs.at(-1)) - (pat(base) + planEntre(base.fecha, cs.at(-1).fecha));
     return h('div', { class: 'hcierres' }, h('div', { class: 'grp' }, 'Tus cierres'),
       h('div', { class: 'cfilas' }, h('div', { class: 'chead' }, h('span', {}, semanales ? 'Cierre' : 'Mes'), h('span', {}, 'Cambio'), h('span', { class: 'cc' }, 'Plan'), h('span', { class: 'cc' }, 'Cuadre'), h('span', { class: 'cc' }, 'Deuda')), filas),
       h('div', { class: 'grp', style: 'padding-top:10px' }, useRes ? 'Tu patrimonio líquido contra tu plan' : 'Tu ahorro trabajado contra tu plan'),
@@ -954,7 +983,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   const monthEndOf = (ym) => { const y = +ym.slice(0, 4), m = +ym.slice(5, 7); return `${ym}-${String(new Date(Date.UTC(y, m, 0)).getUTCDate()).padStart(2, '0')}`; };
 
   // ---------------------------------------------------------- Respaldo: your data lives only on this device, so keep a copy
-  const RESP_KEYS = ['modelo', 'metas', 'pagos', 'cierres', 'vista', 'planVer', 'gastos'];
+  const RESP_KEYS = ['modelo', 'metas', 'pagos', 'cierres', 'vista', 'planVer', 'gastos', 'planHist'];
   function respaldoJSON() {
     const data = {}; for (const k of RESP_KEYS) data[k] = S[k];
     return JSON.stringify({ app: 'mental-finance', version: 1, exportado: new Date().toISOString(), data }, null, 2);
@@ -975,7 +1004,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
     const d = o && o.app === 'mental-finance' ? o.data : null;
     if (!d || !d.modelo) { toast('Ese archivo no es un respaldo de Mental Finance.'); return; }
     for (const k of RESP_KEYS) if (d[k] !== undefined) { S[k] = d[k]; save(k); }
-    S.metas = S.metas || []; S.pagos = S.pagos || {}; S.cierres = S.cierres || []; S.gastos = S.gastos || [];
+    S.metas = S.metas || []; S.pagos = S.pagos || {}; S.cierres = S.cierres || []; S.gastos = S.gastos || []; S.planHist = S.planHist || []; S._base = JSON.stringify(clavePlan(S.modelo));
     toast('Respaldo importado.'); go('hoy');
   }
   function viewRespaldo() {
@@ -998,6 +1027,36 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
     if (fr === 'Quincenal') return h('p', { class: 'note' }, 'Días de pago: el 15 y el último de cada mes.');
     return h('label', { class: 'fld' }, '¿Qué día del mes te pagan?', h('input', { type: 'number', min: '1', max: '31', value: String(m.diaPago || 1), oninput: (e) => upd(() => { m.diaPago = Number(e.target.value || 1); }) }));
   }
+  // history of the savings target: periods the user can review and correct
+  function viewObjetivos() {
+    const H = S.planHist, hoy = today();
+    const card = h('section', { class: 'card', id: 'objetivos' }, h('h2', {}, 'Historial de tu objetivo de ahorro'),
+      h('p', { class: 'note' }, 'Cada pago y cada cierre se compara contra el objetivo que tenías en esa fecha. Cuando cambias tu % de ahorro, tu ingreso o tus fijos, guardo la fecha del cambio.'));
+    // render later: a change event can fire while the old input is being removed (blur), and redrawing inside it breaks the DOM swap
+    const guarda = () => { H.sort((a, b) => a.desde.localeCompare(b.desde)); store.set('planHist', H); setTimeout(render, 0); };
+    if (!H.length) {
+      card.append(h('p', { class: 'note' }, `Desde el inicio: ${Math.round(Number(S.modelo.ahorroPct) * 1000) / 10}% de tu ingreso. Aún no has cambiado tu objetivo.`));
+    } else {
+      card.append(h('div', { class: 'ohead' }, h('span', {}, 'Desde'), h('span', {}, '% ahorro'), h('span', {})));
+      H.forEach((e, k) => {
+        const esActual = k === H.length - 1, inicio = e.desde === '0000-01-01';
+        const fecha = inicio ? h('span', { class: 'ofecha' }, 'El inicio') : h('input', { type: 'date', value: e.desde, max: hoy, 'aria-label': 'Desde qué fecha', onchange: (ev) => { if (ev.target.value && ev.target.value !== e.desde) { e.desde = ev.target.value; guarda(); } } });
+        const pct = esActual ? h('span', { class: 'opct num' }, `${Math.round(e.ahorroPct * 1000) / 10}%`, h('span', { class: 'note' }, ' actual')) : h('input', { type: 'number', inputmode: 'decimal', min: '0', max: '100', value: String(Math.round(e.ahorroPct * 1000) / 10), 'aria-label': '% de ahorro de ese periodo', onchange: (ev) => { const v = Math.max(0, Math.min(100, Number(ev.target.value || 0))) / 100; if (v !== e.ahorroPct) { e.ahorroPct = v; guarda(); } } });
+        const del = esActual ? h('span', {}) : h('button', { class: 'gdel', type: 'button', 'aria-label': 'Quitar este periodo', onclick: () => { H.splice(k, 1); if (H.length === 1) H.length = 0; guarda(); } }, '✕');
+        card.append(h('div', { class: 'ofila' }, fecha, pct, del));
+      });
+    }
+    card.append(h('button', { class: 'btn', type: 'button', onclick: () => {
+      const cur = clavePlan(S.modelo);
+      if (!H.length) H.push(Object.assign({ desde: '0000-01-01' }, cur), Object.assign({ desde: hoy }, cur));
+      else if (H[0].desde !== '0000-01-01') H.unshift(Object.assign({ desde: '0000-01-01' }, clavePlan(H[0])));
+      else H.splice(H.length - 1, 0, Object.assign({}, clavePlan(H.at(-1)), { desde: addDays(H.at(-1).desde, -1) > H.at(-2).desde ? addDays(H.at(-1).desde, -1) : H.at(-1).desde }));
+      guarda();
+    } }, '+ Registrar un objetivo anterior'),
+      h('p', { class: 'note' }, 'Si cambiaste tu % antes de esta función: agrega un objetivo anterior con el % que tenías, y pon en tu objetivo actual la fecha en que lo cambiaste.'));
+    return card;
+  }
+
   function viewModelo() {
     const m = S.modelo, ym = today().slice(0, 7), P = plan(m, ym);
     const upd = (fn) => { fn(); save('modelo'); refreshResult(); };
@@ -1060,7 +1119,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
         h('label', { class: 'fld' }, '% de tus fijos del mes', h('input', { type: 'number', id: 'piso-f', inputmode: 'decimal', min: '0', value: String(Math.round(pc.pctFijos * 100)), oninput: (e) => setPiso('pctFijos', e.target.value) })),
         h('label', { class: 'fld' }, '% de tu flexible del mes', h('input', { type: 'number', id: 'piso-x', inputmode: 'decimal', min: '0', value: String(Math.round(pc.pctFlex * 100)), oninput: (e) => setPiso('pctFlex', e.target.value) }))),
       pisoTxt);
-    return [h('div', { class: 'head' }, h('span', { class: 'brand' }, 'Mi modelo')), ingreso, fijos, tarjetas, piso, viewRespaldo()];
+    return [h('div', { class: 'head' }, h('span', { class: 'brand' }, 'Mi modelo')), ingreso, viewObjetivos(), fijos, tarjetas, piso, viewRespaldo()];
   }
 
   // ---------------------------------------------------------- shell
