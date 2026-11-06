@@ -40,6 +40,32 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
 .brand { font-weight: 700; font-size: 1.1rem; letter-spacing: -0.01em; }
 .chip { font-size: 0.8rem; color: var(--muted); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; }
+/* help: "?" button (top right) and the help screen, outside the three tabs */
+.head:has(.head-r):not(:has(.proto)) { flex-wrap: nowrap; } .head:has(.head-r) .brand { white-space: nowrap; }
+@media (max-width: 385px) { .head-r .chip .pre { display: none; } }
+.head-r { display: flex; align-items: center; gap: 2px; margin-left: auto; min-width: 0; }
+.head-r .chip { white-space: nowrap; }
+.help-btn { width: 44px; height: 44px; margin: -8px -10px -8px -4px; border: 0; background: none; padding: 0; display: grid; place-items: center; cursor: pointer; flex: none; }
+.help-btn span { width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--line); background: var(--panel); color: var(--ink); font-weight: 700; font-size: 0.95rem; display: grid; place-items: center; }
+.help-btn[aria-pressed="true"] span { background: var(--sel); color: var(--sel-ink); border-color: var(--sel); }
+.back { border: 0; background: none; padding: 10px 4px; margin: -10px -4px; font-weight: 600; color: var(--accent); cursor: pointer; }
+.leyenda { display: grid; grid-template-columns: auto 1fr; gap: 10px 12px; align-items: start; }
+.lp { display: inline-flex; align-items: center; gap: 5px; font-size: 0.8rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; white-space: nowrap; justify-self: start; }
+.lp.ok { background: var(--good-soft); color: var(--good); } .lp.warn { background: var(--warn-soft); color: var(--warn); }
+.lp.no { background: var(--bad-soft); color: var(--bad); } .lp.na { background: var(--track); color: var(--muted); }
+.lp.acc { background: var(--track); color: var(--accent); }
+.leyenda p { margin: 2px 0 0; font-size: 0.88rem; line-height: 1.45; }
+.leyenda p small { display: block; color: var(--muted); font-size: 0.8rem; margin-top: 2px; }
+.pasos { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 10px; font-size: 0.9rem; line-height: 1.45; }
+.pasos li::marker { font-weight: 700; color: var(--muted); }
+.pasos small { display: block; color: var(--muted); font-size: 0.8rem; margin-top: 2px; }
+.glos { display: flex; flex-direction: column; }
+.glos details { border-top: 1px solid var(--line); }
+.glos summary { list-style: none; cursor: pointer; padding: 12px 0; font-weight: 600; display: flex; justify-content: space-between; gap: 8px; }
+.glos summary::-webkit-details-marker { display: none; }
+.glos summary::after { content: '+'; color: var(--muted); font-weight: 500; }
+.glos details[open] summary::after { content: '−'; }
+.glos details p { margin: -4px 0 12px; font-size: 0.86rem; line-height: 1.5; color: var(--muted); }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .card h2 { font-size: 1rem; font-weight: 600; margin: 0; }
 .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
@@ -510,7 +536,12 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   // header shared by every tab
   function cabecera() {
     const sem = inicioSem(today());
-    return h('div', { class: 'head' }, h('span', { class: 'brand' }, 'Mental Finance'), h('span', { class: 'chip' }, `Semana del ${sem.slice(5, 7) === addDays(sem, 6).slice(5, 7) ? +sem.slice(8) : corto(sem)} al ${corto(addDays(sem, 6))}`));
+    return h('div', { class: 'head' }, h('span', { class: 'brand' }, 'Mental Finance'), h('div', { class: 'head-r' }, h('span', { class: 'chip' }, h('span', { class: 'pre' }, 'Semana del '), `${sem.slice(5, 7) === addDays(sem, 6).slice(5, 7) ? +sem.slice(8) : corto(sem)} al ${corto(addDays(sem, 6))}`), helpBtn()));
+  }
+  // "?" (top right): opens the help screen; it is not a tab, so it returns to the tab you were in
+  function helpBtn() {
+    const on = S.tab === 'ayuda';
+    return h('button', { class: 'help-btn', 'aria-label': on ? 'Cerrar ayuda' : 'Ayuda: cómo usar la app', 'aria-pressed': String(on), onclick: () => (on ? go(S.tabPrev || 'hoy') : (S.tabPrev = S.tab, go('ayuda'))) }, h('span', { 'aria-hidden': 'true' }, '?'));
   }
   // Gastos tab: weekly log, leftover and last week's decision
   function viewGastos() {
@@ -1119,7 +1150,48 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
         h('label', { class: 'fld' }, '% de tus fijos del mes', h('input', { type: 'number', id: 'piso-f', inputmode: 'decimal', min: '0', value: String(Math.round(pc.pctFijos * 100)), oninput: (e) => setPiso('pctFijos', e.target.value) })),
         h('label', { class: 'fld' }, '% de tu flexible del mes', h('input', { type: 'number', id: 'piso-x', inputmode: 'decimal', min: '0', value: String(Math.round(pc.pctFlex * 100)), oninput: (e) => setPiso('pctFlex', e.target.value) }))),
       pisoTxt);
-    return [h('div', { class: 'head' }, h('span', { class: 'brand' }, 'Mi modelo')), ingreso, viewObjetivos(), fijos, tarjetas, piso, viewRespaldo()];
+    return [h('div', { class: 'head' }, h('span', { class: 'brand' }, 'Mi modelo'), h('div', { class: 'head-r' }, helpBtn())), ingreso, viewObjetivos(), fijos, tarjetas, piso, viewRespaldo()];
+  }
+
+  // ---------------------------------------------------------- Ayuda: what each color means, how to use the app, glossary
+  function viewAyuda() {
+    const head = h('div', { class: 'head' }, h('button', { class: 'back', onclick: () => go(S.tabPrev || 'hoy') }, '‹ Volver'), h('div', { class: 'head-r' }, helpBtn()));
+    const L = (cls, txt, p, sm) => [h('span', { class: `lp ${cls}` }, txt), h('p', {}, p, sm ? h('small', {}, sm) : null)];
+    const colores = h('section', { class: 'card', id: 'ayuda-colores' }, h('h2', {}, 'Qué significa cada color'),
+      h('div', { class: 'leyenda' },
+        ...L('ok', '✓ verde', 'En rango o arriba de tu plan.', 'También: tu cierre cuadra, tu deuda bajó o tu reserva está en tu piso o arriba.'),
+        ...L('ok', '= verde', 'Movimiento neutro: tu patrimonio no cambia.', 'Pagaste tu tarjeta con tu reserva, o tu deuda subió pero ya tienes el efectivo para pagarla.'),
+        ...L('warn', '≈ ámbar', 'Cerca de tu plan (entre 70% y 90%) o algo por revisar.', 'Una diferencia sin explicar en tu cierre, o ya llevas 90% de tu gasto de la semana.'),
+        ...L('no', '✕ rojo', 'Fuera de rango: menos de 70% de tu plan.', 'Por ejemplo, apartaste mucho menos de lo planeado.'),
+        ...L('no', 'rojo', 'Alerta para revisar.', 'Tu deuda subió sin efectivo que la cubra, tu reserva está debajo del piso, te pasaste de tu semana o hace mucho que no respaldas.'),
+        ...L('na', '= gris', 'Sin cambio o sin dato todavía.', 'Tu deuda se mantuvo, o es tu punto de partida.'),
+        ...L('acc', 'azul', 'Totales en las gráficas.', 'Ingresos, utilidad bruta y tu patrimonio al inicio y al cierre.')),
+      h('p', { class: 'note' }, 'En Tu plan, el rojo de la cascada solo marca lo que se resta de tu ingreso (fijos y flexibles). No es una alerta.'));
+    const P = (t, sm) => h('li', {}, h('b', {}, t), sm ? h('small', {}, sm) : null);
+    const pasos = h('section', { class: 'card', id: 'ayuda-pasos' }, h('h2', {}, 'Cómo se usa'),
+      h('ol', { class: 'pasos' },
+        P('Arma tu modelo en Mi modelo.', 'Tu ingreso, cada cuánto cobras, tu día de pago, el % que quieres ahorrar, tus gastos fijos y tus tarjetas.'),
+        P('Cada día de pago, aparta primero.', 'En Hoy te pregunto "¿Ya apartaste $X?". Lo más fácil: programa una transferencia automática ese día.'),
+        P('Durante la semana, anota tus gastos (opcional).', 'En Gastos ves cuánto te queda. Es un apoyo: no cambia tus saldos, metas ni cierres.'),
+        P('Haz tu cierre.', 'Captura el saldo de tus metas, lo que debes en tus tarjetas y tu reserva. Ciérralo siempre el mismo día de tu ciclo para comparar.'),
+        P('Respalda después de cada cierre.', 'Mi modelo → Respaldo → Exportar. Tus datos solo viven en este teléfono.')),
+      h('p', { class: 'note' }, 'No necesitas registrar cada gasto ni que las cifras cuadren exactas: lo importante es mantenerte dentro de los rangos.'));
+    const T = (t, d) => h('details', {}, h('summary', {}, t), h('p', {}, d));
+    const glos = h('section', { class: 'card', id: 'ayuda-glosario' }, h('h2', {}, 'Qué significa cada término'),
+      h('div', { class: 'glos' },
+        T('Día de pago y apartado', 'El día que te pagan. Lo que confirmas que separaste para tus metas ese día es tu apartado.'),
+        T('Gasto fijo y gasto flexible', 'Fijos: lo que pagas con fecha y monto conocidos (renta, seguro, suscripciones). Flexible: lo que te queda para el día a día después de tus fijos y tu ahorro. No lo capturas; se calcula.'),
+        T('Utilidad bruta', 'Tu ingreso menos tus gastos fijos.'),
+        T('Rango', 'Una banda de ±10% alrededor de tu plan. Dentro de ella vas bien aunque no cuadre al peso.'),
+        T('Metas y ritmo', 'Cada cuenta o cajita donde ahorras. Solo capturas su saldo; el ritmo es cuánto creció por semana en las últimas semanas.'),
+        T('Cierre', 'La foto de tus saldos (metas, tarjetas y reserva) en una fecha. Con dos cierres veo qué pasó entre ellos.'),
+        T('Ahorro trabajado', 'Lo que tienes en tus metas menos lo que debes en tarjetas, sin contar las compras a meses que ya están en tus fijos. Es el patrimonio que genera tu sistema.'),
+        T('Reserva para gastos y piso', 'Reserva: el efectivo en tu cuenta de débito o nómina para pagar fijos y gastos (sin las cuentas que ya son metas). Piso: el mínimo sano que deberías tener ahí.'),
+        T('Patrimonio líquido', 'Ahorro trabajado + reserva.'),
+        T('Cuadre', 'Compara lo que dijiste que apartaste contra lo que de verdad crecieron tus metas. Si no cuadra, te pregunto qué lo explica.'),
+        T('Puente', 'La gráfica que explica cómo pasaste de tu patrimonio al inicio al del cierre: lo que apartaste, diferencias en metas, deuda y reserva.'),
+        T('Más / Menos deuda y compras a meses (MSI)', 'El cambio en lo que debes en tarjetas entre cierres. Las compras a meses que registras como fijo se restan solas para no contarlas dos veces.')));
+    return [head, colores, pasos, glos];
   }
 
   // ---------------------------------------------------------- shell
@@ -1127,7 +1199,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   document.querySelectorAll('.tabbar button').forEach((b) => b.addEventListener('click', () => go(b.dataset.tab)));
   function render() {
     document.querySelectorAll('.tabbar button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === S.tab)));
-    $('#app').replaceChildren(...[].concat(S.tab === 'modelo' ? viewModelo() : S.tab === 'gastos' ? viewGastos() : viewHoy()).filter(Boolean));
+    $('#app').replaceChildren(...[].concat(S.tab === 'ayuda' ? viewAyuda() : S.tab === 'modelo' ? viewModelo() : S.tab === 'gastos' ? viewGastos() : viewHoy()).filter(Boolean));
   }
   render();
 })();
