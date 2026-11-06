@@ -49,6 +49,54 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .help-btn span { width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--line); background: var(--panel); color: var(--ink); font-weight: 700; font-size: 0.95rem; display: grid; place-items: center; }
 .help-btn[aria-pressed="true"] span { background: var(--sel); color: var(--sel-ink); border-color: var(--sel); }
 .back { border: 0; background: none; padding: 10px 4px; margin: -10px -4px; font-weight: 600; color: var(--accent); cursor: pointer; }
+.res { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+.res-f { border-bottom: 1px solid var(--line); }
+.res-f > summary, .ver-todos { list-style: none; display: grid; grid-template-columns: auto minmax(0, 1fr) auto 12px; gap: 10px; align-items: center; padding: 11px 0; min-height: 52px; cursor: pointer; }
+.res-f > summary::-webkit-details-marker { display: none; }
+.res-f > summary::after, .ver-todos::after { content: '›'; color: var(--muted); font-size: 1.15rem; justify-self: end; transition: transform .15s; }
+.res-f[open] > summary::after { transform: rotate(90deg); }
+.ver-todos { width: 100%; border: 0; background: none; font: inherit; color: inherit; text-align: left; }
+.res-v.n { color: var(--muted); }
+.ver-todos { border-top: 1px solid var(--line); margin-top: 4px; grid-template-columns: minmax(0, 1fr) 12px; }
+.ver-todos .res-l b { color: var(--accent); }
+.hmes { display: flex; flex-direction: column; }
+.hmes-h { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 14px 0; min-height: 48px; border-bottom: 1px solid var(--line); }
+.hmes-h::-webkit-details-marker { display: none; }
+.hmes-h::after { content: '›'; color: var(--muted); font-size: 1.15rem; margin-left: 4px; transition: transform .15s; }
+.hmes[open] > .hmes-h::after { transform: rotate(90deg); }
+.hmes-h b { flex: 1; }
+.des-s { display: flex; flex-direction: column; gap: 8px; padding-top: 14px; border-top: 1px solid var(--line); }
+.des-s:first-of-type { border-top: 0; padding-top: 0; }
+.des-s h3 { margin: 0; font-size: 0.92rem; font-weight: 600; }
+.hmes-h b { font-size: 1rem; }
+.hmes-s { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--muted); }
+.hmes-s .mark { width: 20px; height: 20px; font-size: 0.7rem; }
+.cfila.pp { cursor: default; grid-template-columns: minmax(0, 1fr) auto; }
+.hist-det { padding: 4px 0 14px; border-bottom: 1px solid var(--line); }
+.hist-det > .card { border: 0; padding: 0; background: none; }
+.det-h { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.det-h h2 { margin: 0; }
+.det .res-b { padding: 0; }
+.res-l { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.res-l b { font-weight: 600; font-size: 0.92rem; }
+.res-l span { font-size: 0.78rem; color: var(--muted); line-height: 1.35; }
+.res-v { font-size: 0.95rem; font-weight: 700; white-space: nowrap; }
+.res-b { display: flex; flex-direction: column; gap: 10px; padding: 0 0 14px 38px; }
+.res-b .res-b { padding: 0; }
+.res-b .goal-v { font-size: 1.5rem; white-space: nowrap; } .res-b .top { gap: 6px; }
+.res-b .reserva { border-top: 0; padding-top: 0; }
+.res-b > .reserva > .grp, .res-b .gasto .gr-t, .res-b .gasto .gr-s { display: none; }
+.res-b .ask { margin-top: 2px; }
+.gasto .gr-t { font-weight: 650; font-size: 0.98rem; }
+.gasto .gr-s { font-size: 0.78rem; color: var(--muted); margin-top: 1px; }
+.como summary { list-style: none; cursor: pointer; color: var(--accent); font-weight: 600; font-size: 0.88rem; min-height: 44px; display: flex; align-items: center; margin: -6px 0 -10px; }
+.como summary::-webkit-details-marker { display: none; }
+.como summary::after { content: '›'; margin-left: 6px; transition: transform .15s; }
+.como[open] summary::after { transform: rotate(90deg); }
+.como-b { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; margin-top: 10px; background: var(--track); border-radius: 12px; }
+.como-f { display: flex; justify-content: space-between; gap: 10px; font-size: 0.86rem; }
+.como-f.tot { border-top: 1px solid var(--line); padding-top: 6px; }
+.gbars-w { display: flex; flex-direction: column; gap: 6px; padding-top: 4px; }
 .leyenda { display: grid; grid-template-columns: auto 1fr; gap: 10px 12px; align-items: start; }
 .lp { display: inline-flex; align-items: center; gap: 5px; font-size: 0.8rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; white-space: nowrap; justify-self: start; }
 .lp.ok { background: var(--good-soft); color: var(--good); } .lp.warn { background: var(--warn-soft); color: var(--warn); }
@@ -208,6 +256,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 .tabbar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--panel); border-top: 1px solid var(--line); display: flex; justify-content: center; gap: 4px; padding: 8px 16px calc(8px + env(safe-area-inset-bottom, 0px)); z-index: 3; }
 .tabbar button { flex: 1 1 0; max-width: 10rem; border: 0; background: none; padding: 9px; border-radius: 10px; font-weight: 600; font-size: 0.9rem; color: var(--muted); cursor: pointer; }
 .tabbar button[aria-selected="true"] { color: var(--ink); background: var(--track); }
+.tabbar button { white-space: nowrap; padding-inline: 4px; }
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(76px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 9px 14px; border-radius: 10px; font-size: 0.88rem; max-width: calc(100% - 32px); z-index: 4; }
 /* Tu semana: weekly flexible-spending log */
 .ohead, .ofila { display: grid; grid-template-columns: minmax(0, 1fr) 7rem 2rem; gap: 8px; align-items: center; }
@@ -256,6 +305,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
 <nav class="tabbar" role="tablist" aria-label="Secciones">
   <button role="tab" id="tab-hoy" data-tab="hoy" aria-selected="true">Hoy</button>
   <button role="tab" id="tab-gastos" data-tab="gastos" aria-selected="false">Gastos</button>
+  <button role="tab" id="tab-historial" data-tab="historial" aria-selected="false">Historial</button>
   <button role="tab" id="tab-modelo" data-tab="modelo" aria-selected="false">Mi modelo</button>
 </nav>
 <div class="toast" id="toast" hidden></div>
@@ -757,6 +807,160 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
     }, 0);
   }
   const sumaMetas = (c) => Object.values(c.metas).reduce((a, v) => a + v, 0);
+  // ---------------------------------------------------------- month close + real flexible spending (deduced from balances, nothing new to capture)
+  // calendar months, 1st to last day. A close on the month's last day makes the month EXACT; otherwise the period that crosses
+  // the month end is split by days (estimate). Income counts real paydays; fixed costs and planned flexible accrue day by day.
+  const finMes = (ym) => { const y = +ym.slice(0, 4), m = +ym.slice(5, 7); return addDays(`${m === 12 ? y + 1 : y}-${String(m === 12 ? 1 : m + 1).padStart(2, '0')}-01`, -1); };
+  function flujoEntre(a, b) {   // (a, b]
+    let ing = 0, fij = 0, flex = 0; const memo = {};
+    for (let d = addDays(a, 1); d <= b; d = addDays(d, 1)) { const m = modeloAt(d), k = (m.desde || '') + d.slice(0, 7); const P = memo[k] || (memo[k] = plan(m, d.slice(0, 7))); fij += P.fijos / 7; flex += Math.max(0, P.flexible) / 7; }
+    for (const d of diasDePago(modeloAt(b), addDays(a, 1), b)) ing += Number(modeloAt(d).ingresoMonto || 0);
+    return { ing, fij, flex };
+  }
+  // real flexible between two closes = income − fixed − change in liquid net worth
+  function gastoReal(ia, ib) {
+    const a = S.cierres[ia], b = S.cierres[ib], f = flujoEntre(a.fecha, b.fecha);
+    const pat = (c) => sumaMetas(c) - deudaConsumo(c) + c.reserva, dPat = pat(b) - pat(a);
+    return Object.assign({ a, b, d1: a.fecha, d2: b.fecha, dias: daysBetween(a.fecha, b.fecha), dPat, real: f.ing - f.fij - dPat }, f);
+  }
+  function estimado(i) {   // "adelanto": the last ~4 weeks, from the most recent close at least 26 days earlier
+    const cs = S.cierres; let ia = -1;
+    for (let k = i - 1; k >= 0; k--) if (daysBetween(cs[k].fecha, cs[i].fecha) >= 26) { ia = k; break; }
+    return ia < 0 || cs[ia].reserva == null || cs[i].reserva == null ? null : gastoReal(ia, i);
+  }
+  function gastoMes(ym) {   // the month's figure, or null while the month is not covered by closes yet
+    const cs = S.cierres, ini = addDays(ym + '-01', -1), fin = finMes(ym);
+    if (cs.length < 2 || cs.at(-1).fecha < fin || cs[0].fecha >= fin) return null;
+    const primero = cs[0].fecha > ini;   // started mid-month: partial first month
+    const t = { ing: 0, fij: 0, flex: 0, dPat: 0, real: 0 }; let estim = false;
+    for (let k = 1; k < cs.length; k++) {
+      const a = cs[k - 1].fecha, b = cs[k].fecha; if (b <= ini || a >= fin) continue;
+      if (cs[k - 1].reserva == null || cs[k].reserva == null) return { sinReserva: true };
+      const frac = daysBetween(a > ini ? a : ini, b < fin ? b : fin) / daysBetween(a, b); if (frac < 1) estim = true;
+      const p = gastoReal(k - 1, k); for (const x of Object.keys(t)) t[x] += p[x] * frac;
+    }
+    const d0 = primero ? cs[0].fecha : ini;
+    return Object.assign(t, { ym, d1: addDays(d0, 1), d2: fin, dias: daysBetween(d0, fin), estimado: estim, primero });
+  }
+  // which month a close completes (the first close on or after that month's last day)
+  function mesQueCompleta(i) {
+    const cs = S.cierres; if (i < 1) return null;
+    const b = cs[i].fecha, ym = b.slice(0, 7); if (b === finMes(ym)) return ym;
+    const prev = addDays(ym + '-01', -1).slice(0, 7); return cs[i - 1].fecha < finMes(prev) ? prev : null;
+  }
+  function gastoInfo(i) {
+    const cs = S.cierres; if (i < 1) return null;
+    if (cs[i].reserva == null) return { tipo: 'sinReserva' };
+    const ym = mesQueCompleta(i);
+    if (ym) { const g = gastoMes(ym); if (g && g.sinReserva) return { tipo: 'sinReserva' }; if (g) return { tipo: 'mes', ym, primero: g.primero, g, est: estimado(i - 1) }; }
+    const e = estimado(i); return e ? { tipo: 'est', g: e } : { tipo: 'falta' };
+  }
+  function resumenMes(ym) { const g = gastoMes(ym); return g && !g.sinReserva ? resumenDe({ tipo: 'mes', ym, primero: g.primero, g }) : null; }
+  // one bar per month: weekly average of real flexible spending vs the weekly plan; the running month shows the "adelanto" (light, dashed)
+  function barrasGasto(i, maxN = 6) {
+    const cs = S.cierres, ult = cs[i].fecha, items = [];
+    for (let ym = cs[0].fecha.slice(0, 7); ym <= ult.slice(0, 7); ym = addDays(finMes(ym), 1).slice(0, 7)) {
+      if (ult >= finMes(ym)) { const g = gastoMes(ym); if (g && !g.sinReserva) items.push({ ym, g, tipo: g.estimado ? 'est' : 'mes' }); }
+      else { const e = estimado(i); if (e) items.push({ ym, g: e, tipo: 'adelanto' }); }
+    }
+    const it = items.slice(-maxN); if (it.length < 2) return null;
+    const box = mountChart((el, W) => {
+      const H = 168, T = 22, B = 34, ph = H - T - B, n = it.length, band = W / n, bw = Math.min(46, band * 0.56);
+      const d = it.map((x) => { const sem = (v) => v / x.g.dias * 7, tol = Math.max(500, x.g.ing * 0.05); return { ...x, real: sem(x.g.real), plan: sem(x.g.flex), raro: x.g.real < -tol, r: rango(x.g.flex, Math.max(1, x.g.real)) }; });
+      const top = Math.max(...d.map((x) => Math.max(x.raro ? 0 : x.real, x.plan))) * 1.12 || 1, Y = (v) => T + ph - Math.max(0, v) / top * ph;
+      const svg = sv('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': 'Lo que gastaste por mes, en promedio por semana, contra tu plan' });
+      svg.append(sv('line', { x1: 0, x2: W, y1: Y(0), y2: Y(0), stroke: 'var(--line)' }));
+      const COL = { ok: 'var(--good)', warn: 'var(--warn)', no: 'var(--bad)' };
+      d.forEach((x, k) => {
+        const cx = band * k + band / 2, x0 = cx - bw / 2;
+        if (!x.raro) svg.append(sv('rect', { x: x0, y: Y(x.real), width: bw, height: Math.max(2, Y(0) - Y(x.real)), rx: 4, fill: COL[x.r.cls], 'fill-opacity': x.tipo === 'adelanto' ? 0.3 : x.tipo === 'est' ? 0.7 : 1, stroke: x.tipo === 'adelanto' ? COL[x.r.cls] : 'none', 'stroke-dasharray': '3 3' }));
+        svg.append(sv('line', { x1: x0 - 5, x2: x0 + bw + 5, y1: Y(x.plan), y2: Y(x.plan), stroke: 'var(--ink)', 'stroke-width': 1.5, 'stroke-dasharray': '4 3' }));
+        svg.append(sv('text', { x: cx, y: x.raro ? Y(0) - 8 : Y(x.real) - 6, class: 'v', 'text-anchor': 'middle' }, x.raro ? '?' : money(x.real)));
+        svg.append(sv('text', { x: cx, y: H - 18, class: 'lab', 'text-anchor': 'middle' }, MES[+x.ym.slice(5, 7) - 1]));
+        const sub = x.tipo === 'adelanto' ? 'adelanto' : x.g.primero ? '1er mes' : x.tipo === 'est' ? 'estimado' : '';
+        if (sub) svg.append(sv('text', { x: cx, y: H - 5, class: 'p', 'text-anchor': 'middle' }, sub));
+      });
+      el.replaceChildren(svg);
+    }, 'gbars', 168);
+    return h('div', { class: 'gbars-w' }, box,
+      h('div', { class: 'legend' }, h('span', {}, h('i', { style: 'border-color:var(--ink);border-top-style:dashed' }), 'Tu plan'), h('span', {}, 'Barra clara = adelanto o estimado')));
+  }
+  // reserve at each close (last ~12 weeks) against the monthly floor in force that month; points under the floor in red
+  function lineaReserva(i, dias = 84) {
+    const cs = S.cierres, ult = cs[i].fecha;
+    const pts = cs.slice(0, i + 1).filter((c) => c.reserva != null && daysBetween(c.fecha, ult) <= dias).map((c) => ({ c, piso: pisoMensual(plan(modeloAt(c.fecha), c.fecha.slice(0, 7))) }));
+    if (pts.length < 2) return null;
+    const bajo = pts.filter((p) => p.c.reserva < p.piso - Math.max(500, p.piso * 0.05)).length;
+    const box = mountChart((el, W) => {
+      const H = 160, T = 14, B = 22, L = 4, RG = 50, pw = W - L - RG, ph = H - T - B, n = pts.length;
+      const all = pts.flatMap((p) => [p.c.reserva, p.piso]), lo = Math.min(0, ...all), hi = Math.max(...all) * 1.18;
+      const X = (k) => L + (n === 1 ? pw / 2 : k / (n - 1) * pw), Y = (v) => T + ph - (v - lo) / (hi - lo) * ph;
+      const svg = sv('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': `Tu reserva en tus últimos ${n} cierres contra tu piso` });
+      svg.append(sv('path', { d: pts.map((p, k) => `${k ? 'L' : 'M'}${X(k)} ${Y(p.piso)}`).join('') + ` L${X(n - 1)} ${Y(lo)} L${X(0)} ${Y(lo)} Z`, fill: 'var(--bad-soft)', 'fill-opacity': 0.35 }));
+      svg.append(sv('path', { d: pts.map((p, k) => `${k ? 'L' : 'M'}${X(k)} ${Y(p.piso)}`).join(''), fill: 'none', stroke: 'var(--bad)', 'stroke-width': 1.5, 'stroke-dasharray': '4 3' }));
+      svg.append(sv('text', { x: L + 2, y: Y(pts[0].piso) - 6, class: 'tk', 'text-anchor': 'start' }, `piso ${money(pts.at(-1).piso)}`));
+      svg.append(sv('path', { d: pts.map((p, k) => `${k ? 'L' : 'M'}${X(k)} ${Y(p.c.reserva)}`).join(''), fill: 'none', stroke: 'var(--accent)', 'stroke-width': 2.5, 'stroke-linejoin': 'round' }));
+      pts.forEach((p, k) => svg.append(sv('circle', { cx: X(k), cy: Y(p.c.reserva), r: k === n - 1 ? 5 : 3.5, fill: p.c.reserva < p.piso - Math.max(500, p.piso * 0.05) ? 'var(--bad)' : 'var(--good)', stroke: 'var(--panel)', 'stroke-width': 2 })));
+      svg.append(sv('text', { x: X(n - 1) + 8, y: Y(pts.at(-1).c.reserva) + 4, class: 'v' }, kfmt(pts.at(-1).c.reserva)));
+      const MINX = 58, EDGE = 66, lab = [0]; for (let k = 1; k < n - 1; k++) { const x = X(k); if (x - X(lab.at(-1)) >= (lab.length === 1 ? EDGE : MINX) && X(n - 1) - x >= EDGE) lab.push(k); } lab.push(n - 1);
+      lab.forEach((k, m) => svg.append(sv('text', { x: X(k), y: H - 6, class: 'tk', 'text-anchor': m === 0 ? 'start' : k === n - 1 ? 'end' : 'middle' }, corto(pts[k].c.fecha))));
+      el.replaceChildren(svg);
+    }, 'rline', 160);
+    return h('div', { class: 'gbars-w' }, box,
+      h('div', { class: 'legend' }, h('span', {}, h('i', { style: 'border-color:var(--accent);border-top-width:3px' }), 'Tu reserva'), h('span', {}, h('i', { style: 'border-color:var(--bad);border-top-style:dashed' }), 'Tu piso (un mes)')),
+      h('p', { class: 'note' }, bajo ? `Estuvo debajo de tu piso en ${bajo} de ${pts.length} cierres. La meta es que nunca baje de un mes de colchón, cobres cuando cobres.` : `Se mantuvo en tu piso o arriba en tus últimos ${pts.length} cierres.`));
+  }
+  const gastoResumen = (i) => resumenDe(gastoInfo(i));
+  function resumenDe(inf) {   // one-line summary (close table and history months)
+    if (!inf) return null;
+    if (inf.tipo === 'sinReserva') return { g: { cls: 'na', ico: '·' }, estado: 'Captura tu reserva para calcularlo', valor: '—' };
+    if (inf.tipo === 'falta') return { g: { cls: 'na', ico: '·' }, estado: 'Necesito unas 4 semanas de cierres', valor: '—' };
+    const g = inf.g, sem = (v) => v / g.dias * 7, tol = Math.max(500, g.ing * 0.05), esMes = inf.tipo === 'mes';
+    if (g.real < -tol) return { g: { cls: 'warn', ico: '?' }, estado: esMes && inf.primero ? 'No pude calcularlo (primer mes)' : 'No pude calcularlo', valor: '—' };
+    const MESC = (ym) => MESL[+ym.slice(5, 7) - 1];
+    return { g: rango(g.flex, Math.max(1, g.real)), estado: `${esMes ? `Promedio de ${MESC(inf.ym)}${g.estimado ? ' (estimado)' : ''}` : 'Adelanto'} · plan ${money(sem(g.flex))}/sem`, valor: `${money(sem(Math.max(0, g.real)))}/sem`, estimado: esMes && g.estimado };
+  }
+  function gastoBlock(i) {
+    const inf = gastoInfo(i); if (!inf) return null;
+    const MESC = (ym) => MESL[+ym.slice(5, 7) - 1];
+    const box = h('div', { class: 'reserva gasto', id: 'gasto-real' });
+    const titulo = (t, sub) => h('div', {}, h('div', { class: 'gr-t' }, t), sub ? h('div', { class: 'gr-s' }, sub) : null);
+    if (inf.tipo === 'sinReserva') { box.append(titulo('Lo que gastaste'), h('p', { class: 'note' }, 'Captura tu reserva en tus cierres y te digo cuánto gastaste de verdad, sin que anotes nada.')); return box; }
+    if (inf.tipo === 'falta') { box.append(titulo('Lo que gastaste'), h('p', { class: 'note' }, 'Con unas 4 semanas de cierres te digo cuánto gastaste de verdad por semana, sin que anotes nada.')); return box; }
+    const g = inf.g, sem = (v) => v / g.dias * 7, tol = Math.max(500, g.ing * 0.05), esMes = inf.tipo === 'mes';
+    const periodo = esMes ? MESC(inf.ym) : null;
+    // "how do I know?": the deduction in plain words, folded
+    const fila = (l, v, tot) => h('div', { class: `como-f${tot ? ' tot' : ''}` }, h('span', {}, l), h('b', { class: 'num' }, v));
+    const como = h('details', { class: 'como' }, h('summary', {}, '¿Cómo lo sé?'),
+      h('div', { class: 'como-b' },
+        h('div', { class: 'gr-s' }, `Del ${corto(g.d1)} al ${corto(g.d2)} (${Math.round(g.dias / 7 * 10) / 10} semanas)`),
+        fila('Entró de tu sueldo (tus días de pago)', money(g.ing)),
+        fila('Salieron tus fijos', `−${money(g.fij)}`),
+        fila(g.dPat >= 0 ? 'Tus cuentas crecieron' : 'Tus cuentas bajaron', `${g.dPat >= 0 ? '−' : '+'}${money(Math.abs(g.dPat))}`),
+        fila(g.real >= 0 ? 'Lo que gastaste' : 'Sobra (gastar menos de cero es imposible)', money(Math.abs(g.real)), true),
+        g.real >= 0 ? fila('Por semana', money(sem(g.real))) : null,
+        h('p', { class: 'note' }, '"Tus cuentas" = tus metas + tu reserva − lo que debes en tarjetas (sin las compras a meses que ya están en tus fijos). Todo lo que gastas termina ahí, aunque no lo anotes.'),
+        esMes && g.estimado ? h('p', { class: 'note' }, `Es un estimado: tu cierre no cayó el ${corto(finMes(inf.ym))}, así que repartí por días el periodo que cruza el fin de mes. Si cierras el último día del mes, el dato es exacto.`) : null,
+        inf.est && esMes && inf.est.real >= -tol && g.real >= -tol && Math.abs(inf.est.real / inf.est.dias * 7 - sem(g.real)) > Math.max(150, sem(g.flex) * 0.1)
+          ? h('p', { class: 'note' }, `Tu adelanto del ${corto(inf.est.b.fecha)} decía ~${money(inf.est.real / inf.est.dias * 7)} por semana. Cambia porque esas 4 semanas no coinciden con el mes.`) : null));
+    if (g.real < -tol) {   // impossible spending: money came in that is not in the model, or a starting balance was incomplete
+      box.append(h('div', { class: 'verdict' }, markR({ cls: 'warn', ico: '?' }), h('div', {},
+        h('b', { class: 'warn' }, esMes ? `No pude calcular tu gasto de ${periodo}.` : 'No pude calcular tu adelanto.'),
+        ' Tus cuentas crecieron más de lo que ganaste: probablemente entró dinero extra o algún saldo estaba incompleto.',
+        esMes && inf.primero ? ' Como es tu primer mes, no cuenta.' : '')), como);
+      return box;
+    }
+    const real = sem(Math.max(0, g.real)), pl = sem(g.flex), r = rango(g.flex, Math.max(1, g.real)), max = Math.max(real, pl, 1);
+    box.append(
+      titulo(esMes ? `Lo que gastaste en ${periodo}` : 'Lo que llevas gastando (adelanto)', esMes ? `Gasto flexible, promedio por semana${g.estimado ? ' · estimado' : ' · exacto'}` : 'Tus últimas 4 semanas, promedio por semana'),
+      h('div', { class: 'top' }, h('span', { class: 'goal-v' }, money(real), h('span', { class: 'note' }, ' por semana')), h('span', { class: 'note num' }, `de ${money(pl)} planeados`)),
+      h('div', { class: 'bar' }, h('div', { class: `fill ${r.cls === 'ok' ? '' : r.cls}`, style: `width:${(real / max * 100).toFixed(1)}%` }), h('div', { class: 'tick', style: `left:calc(${(pl / max * 100).toFixed(1)}% - 2px)` })),
+      h('div', { class: 'verdict' }, markR(r), h('div', {}, h('b', { class: r.cls }, Math.abs(real - pl) < 1 ? 'Justo en tu plan.' : `${money(Math.abs(real - pl))} ${real > pl ? 'más' : 'menos'} por semana de lo planeado.`),
+        esMes && inf.primero ? ' Es tu primer mes: no cuenta para tu evaluación.' : !esMes ? ` El dato de ${MESC(g.b.fecha.slice(0, 7))} llega en tu cierre de fin de mes.` : '')),
+      como);
+    return box;
+  }
+
   // recomputed with your current fixed costs: registering a purchase later also fixes past closes
   // never below zero: a card balance smaller than the pending installments means those installments are not on the card yet
   const deudaConsumo = (c) => Math.max(0, c.deuda - msiPendiente(c.fecha));
@@ -827,19 +1031,18 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
         prev && prev.reserva != null ? h('div', { class: 'note' }, `Desde el cierre anterior tu reserva ${c.reserva >= prev.reserva ? 'subió' : 'bajó'} ${money(Math.abs(c.reserva - prev.reserva))}.`) : null)),
       h('div', { class: 'liq' }, h('span', {}, 'Ahorro trabajado + reserva = '), h('b', { class: 'num' }, money(at + c.reserva)), h('span', { class: 'note' }, ' (tu patrimonio líquido)')));
   }
-  function viewCierre(P) {
-    const card = h('section', { class: 'card', id: 'cierre' }, h('h2', {}, 'Cierre del mes'));
+  function viewCierre(P, forzar) {
+    const embebido = forzar != null;
+    const card = h('section', { class: 'card', id: embebido ? `cierre-${forzar}` : 'cierre' }, embebido ? null : h('h2', {}, 'Cierre del mes'));
     if (!S.metas.length) { card.append(h('p', { class: 'note' }, 'Crea al menos una meta para hacer tu cierre.')); return card; }
     const cs = S.cierres, ult = cs.at(-1), hoy = today();
-    if (S.editando === 'cierre') { card.append(cierreForm(P)); return card; }
-    // which month a close covers: done on day 25+ → that month; before → the previous month
-    // (so a starting point taken mid-month doesn't count as that month's close)
-    const mesDe = (d) => (+d.slice(8) >= 25 ? d : addDays(d.slice(0, 8) + '01', -1)).slice(0, 7);
-    // from day 28 on you can close the current month; before that, the previous one
-    const mesPrevio = (+hoy.slice(8) >= 28 ? hoy : addDays(hoy.slice(0, 8) + '01', -1)).slice(0, 7);
-    const debeCerrar = !ult || mesDe(ult.fecha) < mesPrevio;
+    if (S.editando === 'cierre' && !embebido) { card.append(cierreForm(P)); return card; }
+    // the month's close is the close nearest its last day (±5 days): the button asks for it inside that window
+    // (a starting point taken mid-month doesn't count as that month's close)
+    const pideMes = hoy === finMes(hoy.slice(0, 7)) && !cs.some((c) => c.fecha === hoy), mesVentana = hoy.slice(0, 7);   // last day of the month: the close that makes the month exact
+    const debeCerrar = !ult || pideMes || daysBetween(ult.fecha, hoy) > 31;
     const btn = h('button', { class: debeCerrar ? 'btn primary' : 'btn ghost', onclick: () => { S.editando = 'cierre'; render(); } },
-      !ult ? 'Hacer mi primer cierre' : debeCerrar ? `Cerrar ${MESL[+mesPrevio.slice(5, 7) - 1]}` : 'Hacer otro cierre');
+      !ult ? 'Hacer mi primer cierre' : pideMes ? `Cerrar ${MESL[+mesVentana.slice(5, 7) - 1]}` : debeCerrar ? 'Hacer mi cierre' : 'Hacer otro cierre');
     if (!ult) {
       card.append(h('p', { class: 'note' }, 'Una vez al mes: actualizas el saldo de tus metas y cuánto debes en tus tarjetas. Con eso reviso si lo que apartaste se convirtió en ahorro trabajado.'), btn);
       return card;
@@ -849,94 +1052,172 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
         h('div', {}, h('b', {}, `Punto de partida: ${largo(ult.fecha)}.`), ` Ahorro trabajado: ${money(sumaMetas(ult) - deudaConsumo(ult))}. Tu primer puente se arma en tu siguiente cierre.`)), reservaBlock(P, ult, null), btn);
       return card;
     }
-    const sel = S.cierreSel != null && S.cierreSel >= 1 && S.cierreSel < cs.length ? S.cierreSel : cs.length - 1;
+    const sel = embebido ? forzar : cs.length - 1;   // Hoy = only the most recent close; older ones live in Historial
     const pz = puente(cs[sel - 1], cs[sel]);
     const esUltimo = sel === cs.length - 1;
     const tol = Math.max(200, pz.apartado * 0.05);
     // with cash reserve captured on both closes, card debt is netted against the cash meant to pay it
     const conRes = pz.a.reserva != null && pz.b.reserva != null, dRes = conRes ? pz.b.reserva - pz.a.reserva : 0;
     const planPeriodo = planEntre(pz.a.fecha, pz.b.fecha), dPat = pz.pFin - pz.pIni + dRes, g = rango(dPat, planPeriodo);
-    card.append(h('p', { class: 'note', style: 'margin-top:-6px' }, `Del ${corto(pz.a.fecha)} al ${corto(pz.b.fecha)} ${pz.b.fecha.slice(0, 4)}${esUltimo ? '' : ' · cierre anterior'}`),
+    card.append(h('p', { class: 'note', style: 'margin-top:-6px' }, `Del ${corto(pz.a.fecha)} al ${corto(pz.b.fecha)} ${pz.b.fecha.slice(0, 4)}${(() => { const mq = mesQueCompleta(sel); return mq ? (cs[sel].fecha === finMes(mq) ? ` · cierra ${MESL[+mq.slice(5, 7) - 1]}` : ` · completa ${MESL[+mq.slice(5, 7) - 1]} (estimado)`) : ''; })()}${esUltimo ? '' : ' · cierre anterior'}`),
       h('div', { class: 'verdict' }, markR(g), h('div', {}, h('b', { class: g.cls }, `${conRes ? 'Tu patrimonio líquido' : 'Tu ahorro trabajado'} ${dPat >= 0 ? 'creció' : 'bajó'} ${money(Math.abs(dPat))}.`), ` Tu plan para ese periodo: ${money(planPeriodo)}.`)));
     const items = [{ l: ['Al inicio'], v: pz.pIni + (conRes ? pz.a.reserva : 0), tot: true, c: 'var(--accent)' }, { l: ['Apartaste'], v: pz.apartado, c: 'var(--good)' }];
     if (Math.abs(pz.otros) >= 1) items.push({ l: ['Diferencia', 'en metas'], v: pz.otros, c: pz.otros >= 0 ? 'var(--good)' : 'var(--warn)' });
-    if (Math.abs(pz.dDeuda) >= 1) items.push({ l: [pz.dDeuda > 0 ? 'Más' : 'Menos', 'deuda'], v: -pz.dDeuda, c: pz.dDeuda > 0 ? 'var(--bad)' : 'var(--good)' });
-    if (conRes && Math.abs(dRes) >= 1) items.push({ l: [dRes >= 0 ? 'Más' : 'Menos', 'reserva'], v: dRes, c: dRes >= 0 ? 'var(--good)' : 'var(--warn)' });
+    // debt and reserve moving the same way (paid the card with the reserve, or new debt already covered with cash) is mostly neutral:
+    // one bar with the NET effect; gray when it stays within tolerance, so paying the card never looks like saving
+    const tolN = Math.max(300, P.ingreso * 52 / 12 * 0.02), juntos = conRes && Math.abs(pz.dDeuda) >= 1 && Math.abs(dRes) >= 1 && Math.sign(pz.dDeuda) === Math.sign(dRes), neto = dRes - pz.dDeuda;
+    if (juntos) items.push({ l: ['Tarjetas', Math.abs(neto) <= tolN ? 'y reserva (=)' : 'y reserva'], v: neto, c: Math.abs(neto) <= tolN ? 'var(--muted)' : neto > 0 ? 'var(--good)' : pz.dDeuda > 0 ? 'var(--bad)' : 'var(--warn)' });
+    else {
+      if (Math.abs(pz.dDeuda) >= 1) items.push({ l: [pz.dDeuda > 0 ? 'Más' : 'Menos', 'deuda'], v: -pz.dDeuda, c: pz.dDeuda > 0 ? 'var(--bad)' : 'var(--good)' });
+      if (conRes && Math.abs(dRes) >= 1) items.push({ l: [dRes >= 0 ? 'Más' : 'Menos', 'reserva'], v: dRes, c: dRes >= 0 ? 'var(--good)' : 'var(--warn)' });
+    }
     if (Math.abs(pz.nuevas - pz.quitadas) >= 1) items.push({ l: ['Metas', 'nuevas'], v: pz.nuevas - pz.quitadas, c: 'var(--muted)' });
     items.push({ l: ['Al cierre'], v: pz.pFin + (conRes ? pz.b.reserva : 0), tot: true, c: 'var(--accent)' });
     card.append(puenteChart(items));
+    // summary table: one row per topic (mark, short status, figure); the details unfold under each row
+    const bC = h('div', { class: 'res-b' }), bD = h('div', { class: 'res-b' }), bA = h('div', { class: 'res-b' });
     // 1) does what you set aside match how much your goals grew?
-    if (Math.abs(pz.otros) <= tol) card.append(h('div', { class: 'verdict' }, markR({ cls: 'ok', ico: '✓' }), h('div', {}, h('b', { class: 'ok' }, 'Cuadra.'), ` Tus metas crecieron lo que apartaste (${money(pz.apartado)}).`)));
-    else if (cs[sel].explica) card.append(h('div', { class: 'verdict' }, markR({ cls: 'ok', ico: '✓' }), h('div', {}, h('b', {}, 'Explicado: '), `${cs[sel].explica} (${pz.otros >= 0 ? '+' : '−'}${money(Math.abs(pz.otros))}).`, ' ', h('button', { class: 'btn ghost', onclick: () => { delete cs[sel].explica; save('cierres'); render(); } }, 'Cambiar'))));
+    if (Math.abs(pz.otros) <= tol) bC.append(h('div', { class: 'verdict' }, markR({ cls: 'ok', ico: '✓' }), h('div', {}, h('b', { class: 'ok' }, 'Cuadra.'), ` Tus metas crecieron lo que apartaste (${money(pz.apartado)}).`)));
+    else if (cs[sel].explica) bC.append(h('div', { class: 'verdict' }, markR({ cls: 'ok', ico: '✓' }), h('div', {}, h('b', {}, 'Explicado: '), `${cs[sel].explica} (${pz.otros >= 0 ? '+' : '−'}${money(Math.abs(pz.otros))}).`, ' ', h('button', { class: 'btn ghost', onclick: () => { delete cs[sel].explica; save('cierres'); render(); } }, 'Cambiar'))));
     else {
       const ops = pz.otros >= 0 ? ['Mandé lo que me sobró de mis semanas', 'Rendimientos de mis inversiones', 'Metí dinero que no anoté como apartado', 'Error en algún saldo'] : ['Saqué dinero de una meta', 'Bajó el valor de mi inversión', 'Aparté menos de lo que anoté', 'Error en algún saldo'];
-      card.append(h('div', { class: 'ask' }, h('div', { class: 'verdict' }, markR({ cls: 'warn', ico: '?' }),
+      bC.append(h('div', { class: 'ask' }, h('div', { class: 'verdict' }, markR({ cls: 'warn', ico: '?' }),
         h('div', {}, h('b', { class: 'warn' }, `Apartaste ${money(pz.apartado)}, pero tus metas ${pz.otros + pz.apartado >= 0 ? 'crecieron' : 'bajaron'} ${money(Math.abs(pz.otros + pz.apartado))}.`), ` ¿Qué explica la diferencia de ${money(Math.abs(pz.otros))}?`)),
         h('div', { class: 'opts' }, ops.concat('No sé').map((o) => h('button', { class: 'btn small', onclick: () => { cs[sel].explica = o; save('cierres'); render(); } }, o)))));
     }
     // 2) consumer debt: the blind spot
     const tolD = Math.max(300, P.ingreso * 52 / 12 * 0.02);
-    const V = (cls, ico, b, t) => h('div', { class: 'verdict' }, markR({ cls, ico }), h('div', {}, h('b', { class: cls }, b), t));
+    const V = (cls, ico, b, t, extra) => h('div', { class: 'verdict' }, markR({ cls, ico }), h('div', {}, h('b', { class: cls }, b), t, extra || null));
     if (pz.dDeuda > tolD) {
       const sinCubrir = pz.dDeuda - Math.max(0, dRes);
-      if (conRes && sinCubrir <= tolD) card.append(V('ok', '✓', `Tu deuda de tarjetas subió ${money(pz.dDeuda)}, pero tu reserva también (${money(dRes)}).`, ' Está cubierta con efectivo que ya tienes: paga tu tarjeta con ese dinero. No es una pérdida.'));
-      else if (conRes) card.append(V('no', '!', `Tu deuda subió ${money(pz.dDeuda)} y tu reserva ${dRes >= 0 ? `solo ${money(dRes)}` : `bajó ${money(-dRes)}`}.`, ` Hay ${money(sinCubrir)} que no tienes en efectivo: gastaste con tarjeta más de lo planeado. Si fue una compra a meses, regístrala en Mi modelo con su fecha de fin.`));
-      else card.append(V('no', '!', `Tu deuda de tarjetas subió ${money(pz.dDeuda)}.`, ' Si tienes el efectivo para pagarla en tu cuenta de débito, captura tu reserva en el cierre y lo tomo en cuenta. Si no, gastaste con tarjeta más de lo que pagaste. Si fue una compra a meses, regístrala en Mi modelo.'));
+      if (conRes && sinCubrir <= tolD) bD.append(V('na', '=', `Tu deuda de tarjetas subió ${money(pz.dDeuda)}, pero tu reserva también (${money(dRes)}).`, ' Está cubierta con efectivo que ya tienes: paga tu tarjeta con ese dinero. No es una pérdida ni un ahorro.'));
+      else if (conRes) bD.append(V('no', '!', `Tu deuda subió ${money(pz.dDeuda)} y tu reserva ${dRes >= 0 ? `solo ${money(dRes)}` : `bajó ${money(-dRes)}`}.`, ` Hay ${money(sinCubrir)} que no tienes en efectivo: gastaste con tarjeta más de lo planeado. Si fue una compra a meses, regístrala en Mi modelo con su fecha de fin.`));
+      else bD.append(V('no', '!', `Tu deuda de tarjetas subió ${money(pz.dDeuda)}.`, ' Si tienes el efectivo para pagarla en tu cuenta de débito, captura tu reserva en el cierre y lo tomo en cuenta. Si no, gastaste con tarjeta más de lo que pagaste. Si fue una compra a meses, regístrala en Mi modelo.'));
     } else if (pz.dDeuda < -tolD) {
-      if (conRes && dRes <= pz.dDeuda + tolD) card.append(V('ok', '=', `Pagaste ${money(-pz.dDeuda)} de tarjeta con tu reserva.`, ' Tu patrimonio no cambia por eso: bajó tu deuda y bajó tu efectivo en lo mismo.'));
-      else card.append(V('ok', '✓', `Bajaste tu deuda de tarjetas ${money(-pz.dDeuda)}.`, ' Deber menos también es avanzar.'));
-    } else card.append(V('ok', '✓', 'Tu deuda de tarjetas se mantuvo.', ` ${money(deudaConsumo(cs[sel]))}, sin contar ${money(msiPendiente(cs[sel].fecha))} de compras a meses.`));
+      if (conRes && dRes <= pz.dDeuda + tolD) bD.append(V('na', '=', `Pagaste ${money(-pz.dDeuda)} de tarjeta con tu reserva.`, ' Eso no es ahorro: bajó tu deuda y bajó tu efectivo.', neto < -tolD ? h('div', { class: 'note' }, `Tu reserva bajó ${money(-neto)} más de lo que pagaste: esa parte sí salió de tu patrimonio (gasto o fijos pagados en efectivo).`) : null));
+      else if (juntos) bD.append(V('ok', '✓', `Pagaste ${money(-pz.dDeuda)} de tarjeta y tu reserva bajó ${money(-dRes)}.`, ` La diferencia, ${money(neto)}, sí es avance: esa parte no salió de tu reserva.`));
+      else bD.append(V('ok', '✓', `Bajaste tu deuda de tarjetas ${money(-pz.dDeuda)}.`, ' Deber menos también es avanzar.'));
+    } else bD.append(V('ok', '✓', 'Tu deuda de tarjetas se mantuvo.', ` ${money(deudaConsumo(cs[sel]))}, sin contar ${money(msiPendiente(cs[sel].fecha))} de compras a meses.`));
     // 3) where did the saving stay? growth that stays in the debit account is not "set aside"
     if (conRes) { const enMetas = pz.apartado + pz.otros; if (dPat >= planPeriodo * 0.7 && enMetas < planPeriodo * 0.7 && dRes > Math.max(500, planPeriodo * 0.3))
-      card.append(V('warn', '≈', `De ese crecimiento, ${money(Math.max(0, enMetas))} está en tus metas y ${money(dRes)} se quedó en tu cuenta de débito.`, ' Es patrimonio, pero no está apartado: muévelo a tus metas para que no se gaste.')); }
-    { const pt = porTarjeta(pz); if (pt) card.append(pt); }
-    { const rb = reservaBlock(P, cs[sel], cs[sel - 1]); if (rb) card.append(rb); }
-    card.append(h('p', { class: 'note' }, conRes ? 'Patrimonio líquido = metas + reserva − tarjetas (sin las compras a meses de tus fijos). Así, una deuda que ya tienes cubierta con efectivo no cuenta como pérdida.' : 'Ahorro trabajado = lo que tienes en tus metas − lo que debes en tarjetas (sin las compras a meses que ya están en tus fijos). Captura tu reserva para tomar en cuenta el efectivo con el que pagarás tus tarjetas.'),
-      h('p', { class: 'tip' }, h('b', {}, 'Tip: '), 'haz tus cierres siempre el mismo día y en el mismo momento de tu ciclo (por ejemplo, antes de cobrar). Así tus cierres se pueden comparar entre sí.'));
-    if (cs.length >= 3) card.append(historialCierres(P, sel));
+      bA.append(V('warn', '≈', `De ese crecimiento, ${money(Math.max(0, enMetas))} está en tus metas y ${money(dRes)} se quedó en tu cuenta de débito.`, ' Es patrimonio, pero no está apartado: muévelo a tus metas para que no se gaste.')); }
+    { const pt = porTarjeta(pz); if (pt) { pt.removeAttribute('style'); bD.append(pt); } }
+    // each row unfolds its detail right there; open rows are remembered while you move around
+    const abiertos = S.resAbiertos || (S.resAbiertos = {});
+    const fila = (id, g, label, estado, valor, body, neutro, abrir) => {
+      const k = `${cs[sel].fecha}:${id}`, open = abiertos[k] != null ? abiertos[k] : !!abrir;
+      return h('details', { class: 'res-f', id: `res-${id}`, open: open ? true : null, ontoggle: (e) => { abiertos[k] = e.target.open; } },
+        h('summary', {}, markR(g), h('span', { class: 'res-l' }, h('b', {}, label), h('span', {}, estado)), h('b', { class: `res-v num${neutro ? ' n' : ''}` }, valor)), body);
+    };
+    const filas = [];
+    // 1) set aside vs goals
+    { const crec = pz.apartado + pz.otros, cu = Math.abs(pz.otros) <= tol ? 'ok' : cs[sel].explica ? 'exp' : 'no';
+      filas.push(fila('cuadre', cu === 'no' ? { cls: 'warn', ico: '?' } : { cls: 'ok', ico: '✓' }, 'Lo que apartaste',
+        cu === 'ok' ? `Cuadra: tus metas crecieron ${money(crec)}` : cu === 'exp' ? `Explicado: ${cs[sel].explica}` : `Tus metas ${crec >= 0 ? 'crecieron' : 'bajaron'} ${money(Math.abs(crec))}: ¿por qué?`,
+        money(pz.apartado), bC, false, cu === 'no')); }
+    // 2) cards
+    { const pago = juntos && pz.dDeuda < 0, neutro = juntos && Math.abs(neto) <= tolN;
+      // moving together with the reserve: the figure is the NET effect on your net worth (same as the bridge), never the payment itself
+      const t = pago ? (neutro ? [{ cls: 'na', ico: '=' }, `Pagaste ${money(-pz.dDeuda)} con tu reserva: neutro`] : neto < 0 ? [{ cls: 'warn', ico: '≈' }, `Pagaste ${money(-pz.dDeuda)} con tu reserva y salió de más`] : [{ cls: 'ok', ico: '✓' }, `Pagaste ${money(-pz.dDeuda)}; de tu reserva salió menos`])
+        : juntos ? (neto >= -tolN ? [{ cls: 'na', ico: '=' }, `Subió ${money(pz.dDeuda)}, pero tu reserva la cubre: neutro`] : [{ cls: 'no', ico: '!' }, `Subió ${money(pz.dDeuda)}; ${money(-neto)} sin efectivo que la cubra`])
+        : pz.dDeuda > tolD ? [{ cls: 'no', ico: '!' }, conRes ? `Subió; ${money(pz.dDeuda - Math.max(0, dRes))} sin efectivo que la cubra` : 'Subió']
+        : pz.dDeuda < -tolD ? [{ cls: 'ok', ico: '✓' }, 'Bajó'] : [{ cls: 'ok', ico: '✓' }, 'Se mantuvo'];
+      const valor = juntos ? (neutro ? '= $0' : `${neto > 0 ? '+' : '−'}${money(Math.abs(neto))}`) : Math.abs(pz.dDeuda) > tolD ? `${pz.dDeuda > 0 ? '+' : '−'}${money(Math.abs(pz.dDeuda))}` : money(deudaConsumo(cs[sel]));
+      filas.push(fila('tarjetas', t[0], juntos ? 'Tarjetas y reserva' : 'Tus tarjetas', t[1], valor, bD, neutro)); }
+    // 3) cash reserve vs floor
+    { const rb = reservaBlock(P, cs[sel], cs[sel - 1]);
+      if (rb) { const piso = pisoMensual(P), d = cs[sel].reserva - piso, tr = Math.max(500, piso * 0.05);
+        const st = d > tr ? [{ cls: 'ok', ico: '↑' }, `Arriba de tu piso (${money(piso)})`] : d < -tr ? [{ cls: 'no', ico: '↓' }, `Debajo de tu piso (${money(piso)})`] : [{ cls: 'ok', ico: '✓' }, 'En tu piso'];
+        filas.push(fila('reserva', st[0], 'Tu reserva', st[1], money(cs[sel].reserva), h('div', { class: 'res-b' }, rb))); } }
+    // 4) real flexible spending (deduced)
+    { const gb = gastoBlock(sel), gr = gastoResumen(sel); if (gb && gr) filas.push(fila('gasto', gr.g, 'Lo que gastaste', gr.estado, gr.valor, h('div', { class: 'res-b' }, gb))); }
+    // 5) only when it applies: growth that stayed in the debit account
+    if (bA.childNodes.length) filas.push(fila('donde', { cls: 'warn', ico: '≈' }, 'Dónde quedó tu ahorro', 'Una parte se quedó en tu cuenta de débito', money(dRes), bA));
+    card.append(h('div', { class: 'res' }, filas));
+    if (embebido) return card;
+    if (cs.length >= 2) card.append(h('button', { class: 'ver-todos', onclick: () => go('historial') }, h('span', { class: 'res-l' }, h('b', {}, 'Ver tu historial'), h('span', {}, `${cs.length - 1} cierre${cs.length > 2 ? 's' : ''} desde el ${corto(cs[0].fecha)}, en la pestaña Historial`))));
     card.append(btn);
     return card;
   }
 
   // every close as a row (tap to see its bridge) + working net worth vs the plan since your first close
-  function historialCierres(P, sel) {
-    const cs = S.cierres, base = cs[0], useRes = cs.every((c) => c.reserva != null), pat = (c) => sumaMetas(c) - deudaConsumo(c) + (useRes ? c.reserva : 0);
-    const semanales = cs.length > 1 && daysBetween(cs.at(-2).fecha, cs.at(-1).fecha) < 20;
-    const filas = [];
-    for (let i = cs.length - 1; i >= 1; i--) {
-      const pz = puente(cs[i - 1], cs[i]), d = pat(cs[i]) - pat(cs[i - 1]), plan = planEntre(cs[i - 1].fecha, cs[i].fecha), g = rango(d, plan), dR = useRes ? cs[i].reserva - cs[i - 1].reserva : 0;
-      const tol = Math.max(200, pz.apartado * 0.05), tolD = Math.max(300, P.ingreso * 52 / 12 * 0.02);
-      const cu = Math.abs(pz.otros) <= tol ? { cls: 'ok', ico: '✓', t: 'Cuadra' } : cs[i].explica ? { cls: 'ok', ico: '✓', t: 'Explicado' } : { cls: 'warn', ico: '?', t: 'Sin explicar' };
-      const de = pz.dDeuda > tolD && useRes && pz.dDeuda - Math.max(0, dR) <= tolD ? { cls: 'ok', ico: '=', t: 'Deuda cubierta con efectivo' } : pz.dDeuda > tolD ? { cls: 'no', ico: '↑', t: 'Deuda subió' } : pz.dDeuda < -tolD ? { cls: 'ok', ico: '↓', t: 'Deuda bajó' } : { cls: 'na', ico: '=', t: 'Deuda igual' };
-      const mes = semanales ? corto(cs[i].fecha) : MESL[(+cs[i].fecha.slice(5, 7) + (+cs[i].fecha.slice(8) <= 10 ? 10 : 11)) % 12];
-      filas.push(h('button', { class: `cfila ${i === sel ? 'on' : ''}`, 'aria-pressed': String(i === sel), onclick: () => { S.cierreSel = i; render(); } },
-        h('span', { class: 'cm', title: mes }, semanales ? mes : `${mes.charAt(0).toUpperCase()}${mes.slice(1, 3)}`),
-        h('span', { class: `cd num ${g.cls}` }, `${d >= 0 ? '+' : '−'}${money(Math.abs(d))}`),
-        h('span', { class: 'cc' }, h('span', { class: `mark ${g.cls}`, title: g.txt, 'aria-label': `Plan: ${g.txt}` }, g.ico)),
-        h('span', { class: 'cc' }, h('span', { class: `mark ${cu.cls}`, title: cu.t, 'aria-label': cu.t }, cu.ico)),
-        h('span', { class: 'cc' }, h('span', { class: `mark ${de.cls}`, title: de.t, 'aria-label': de.t }, de.ico))));
-    }
-    // trend: real working net worth at each close vs base + plan
-    const chart = mountChart((box, W) => {
-      const pts = cs.map((c) => ({ x: daysBetween(base.fecha, c.fecha) / 7, real: pat(c), plan: pat(base) + planEntre(base.fecha, c.fecha) }));
+  // one close as a row (tap → its bridge); shared by the close card and the full history screen
+  function filaCierre(P, i, sel, H, onclick) {
+    const cs = S.cierres, pz = puente(cs[i - 1], cs[i]), d = H.pat(cs[i]) - H.pat(cs[i - 1]), plan = planEntre(cs[i - 1].fecha, cs[i].fecha), g = rango(d, plan), dR = H.useRes ? cs[i].reserva - cs[i - 1].reserva : 0;
+    const tol = Math.max(200, pz.apartado * 0.05), tolD = Math.max(300, P.ingreso * 52 / 12 * 0.02);
+    const cu = Math.abs(pz.otros) <= tol ? { cls: 'ok', ico: '✓', t: 'Cuadra' } : cs[i].explica ? { cls: 'ok', ico: '✓', t: 'Explicado' } : { cls: 'warn', ico: '?', t: 'Sin explicar' };
+    const de = pz.dDeuda > tolD && H.useRes && pz.dDeuda - Math.max(0, dR) <= tolD ? { cls: 'ok', ico: '=', t: 'Deuda cubierta con efectivo' } : pz.dDeuda > tolD ? { cls: 'no', ico: '↑', t: 'Deuda subió' } : pz.dDeuda < -tolD ? { cls: 'ok', ico: '↓', t: 'Deuda bajó' } : { cls: 'na', ico: '=', t: 'Deuda igual' };
+    const mes = H.semanales ? corto(cs[i].fecha) : MESL[(+cs[i].fecha.slice(5, 7) + (+cs[i].fecha.slice(8) <= 10 ? 10 : 11)) % 12];
+    return h('button', { class: `cfila ${i === sel ? 'on' : ''}`, 'aria-pressed': String(i === sel), onclick: onclick || (() => { S.cierreSel = i; render(); }) },
+      h('span', { class: 'cm', title: mes }, H.semanales ? mes : `${mes.charAt(0).toUpperCase()}${mes.slice(1, 3)}`),
+      h('span', { class: `cd num ${g.cls}` }, `${d >= 0 ? '+' : '−'}${money(Math.abs(d))}`),
+      h('span', { class: 'cc' }, h('span', { class: `mark ${g.cls}`, title: g.txt, 'aria-label': `Plan: ${g.txt}` }, g.ico)),
+      h('span', { class: 'cc' }, h('span', { class: `mark ${cu.cls}`, title: cu.t, 'aria-label': cu.t }, cu.ico)),
+      h('span', { class: 'cc' }, h('span', { class: `mark ${de.cls}`, title: de.t, 'aria-label': de.t }, de.ico)));
+  }
+  function histCtx() {
+    const cs = S.cierres, useRes = cs.every((c) => c.reserva != null);
+    return { useRes, pat: (c) => sumaMetas(c) - deudaConsumo(c) + (useRes ? c.reserva : 0), semanales: cs.length > 1 && daysBetween(cs.at(-2).fecha, cs.at(-1).fecha) < 20 };
+  }
+  const cabeceraCierres = (H) => h('div', { class: 'chead' }, h('span', {}, H.semanales ? 'Cierre' : 'Mes'), h('span', {}, 'Cambio'), h('span', { class: 'cc' }, 'Plan'), h('span', { class: 'cc' }, 'Cuadre'), h('span', { class: 'cc' }, 'Deuda'));
+  // trend of real net worth vs "if you had followed your plan", from the first close shown; dates thinned so they never overlap
+  function tendencia(idxs, H) {
+    const cs = S.cierres, base = cs[idxs[0]];
+    return mountChart((box, W) => {
+      const pts = idxs.map((k) => ({ k, x: daysBetween(base.fecha, cs[k].fecha) / 7, real: H.pat(cs[k]), plan: H.pat(base) + planEntre(base.fecha, cs[k].fecha) }));
       const all = pts.flatMap((p) => [p.real, p.plan]), lo = Math.min(...all), hi = Math.max(...all), pad = (hi - lo) * 0.15 || 1000;
-      const H = 150, T = 12, B = 22, L = 4, RG = 46, pw = W - L - RG, ph = H - T - B, xmax = pts.at(-1).x || 1;
+      const H2 = 150, T = 12, B = 22, L = 4, RG = 46, pw = W - L - RG, ph = H2 - T - B, xmax = pts.at(-1).x || 1;
       const X = (x) => L + x / xmax * pw, Y = (v) => T + ph - (v - (lo - pad)) / (hi - lo + 2 * pad) * ph;
-      const svg = sv('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': `Ahorro trabajado: de ${money(pts[0].real)} a ${money(pts.at(-1).real)}; plan ${money(pts.at(-1).plan)}` });
+      const svg = sv('svg', { width: W, height: H2, viewBox: `0 0 ${W} ${H2}`, role: 'img', 'aria-label': `De ${money(pts[0].real)} a ${money(pts.at(-1).real)}; plan ${money(pts.at(-1).plan)}` });
       [lo, hi].forEach((v) => { svg.append(sv('line', { x1: L, x2: L + pw, y1: Y(v), y2: Y(v), stroke: 'var(--line)' })); svg.append(sv('text', { x: W - 2, y: Y(v) + 4, class: 'tk', 'text-anchor': 'end' }, kfmt(v))); });
       svg.append(sv('path', { d: pts.map((p, k) => `${k ? 'L' : 'M'}${X(p.x)} ${Y(p.plan)}`).join(''), fill: 'none', stroke: 'var(--muted)', 'stroke-width': 1.5, 'stroke-dasharray': '4 4' }));
       svg.append(sv('path', { d: pts.map((p, k) => `${k ? 'L' : 'M'}${X(p.x)} ${Y(p.real)}`).join(''), fill: 'none', stroke: 'var(--accent)', 'stroke-width': 2.5, 'stroke-linejoin': 'round' }));
-      pts.forEach((p, k) => { svg.append(sv('circle', { cx: X(p.x), cy: Y(p.real), r: k === pts.length - 1 ? 5 : 3.5, fill: 'var(--accent)', stroke: 'var(--panel)', 'stroke-width': 2 })); svg.append(sv('text', { x: k === 0 ? L : k === pts.length - 1 ? L + pw : X(p.x), y: H - 6, class: 'tk', 'text-anchor': k === 0 ? 'start' : k === pts.length - 1 ? 'end' : 'middle' }, corto(cs[k].fecha))); });
+      pts.forEach((p, k) => svg.append(sv('circle', { cx: X(p.x), cy: Y(p.real), r: k === pts.length - 1 ? 5 : 3.5, fill: 'var(--accent)', stroke: 'var(--panel)', 'stroke-width': 2 })));
+      // labels: first and last always; the rest only if they keep enough room from their neighbors (edges are anchored start/end)
+      const MINX = 58, EDGE = 72, lab = [0]; for (let k = 1; k < pts.length - 1; k++) { const x = X(pts[k].x), prev = X(pts[lab.at(-1)].x); if (x - prev >= (lab.length === 1 ? EDGE : MINX) && X(pts.at(-1).x) - x >= EDGE) lab.push(k); }
+      if (pts.length > 1) lab.push(pts.length - 1);
+      lab.forEach((k, n) => svg.append(sv('text', { x: n === 0 ? L : k === pts.length - 1 ? L + pw : X(pts[k].x), y: H2 - 6, class: 'tk', 'text-anchor': n === 0 ? 'start' : k === pts.length - 1 ? 'end' : 'middle' }, corto(cs[pts[k].k].fecha))));
       box.replaceChildren(svg);
     }, 'trend', 150);
-    const brecha = pat(cs.at(-1)) - (pat(base) + planEntre(base.fecha, cs.at(-1).fecha));
-    return h('div', { class: 'hcierres' }, h('div', { class: 'grp' }, 'Tus cierres'),
-      h('div', { class: 'cfilas' }, h('div', { class: 'chead' }, h('span', {}, semanales ? 'Cierre' : 'Mes'), h('span', {}, 'Cambio'), h('span', { class: 'cc' }, 'Plan'), h('span', { class: 'cc' }, 'Cuadre'), h('span', { class: 'cc' }, 'Deuda')), filas),
-      h('div', { class: 'grp', style: 'padding-top:10px' }, useRes ? 'Tu patrimonio líquido contra tu plan' : 'Tu ahorro trabajado contra tu plan'),
-      chart,
-      h('div', { class: 'legend' }, h('span', {}, h('i', { style: 'border-color:var(--accent);border-top-width:3px' }), 'Real'), h('span', {}, h('i', { style: 'border-color:var(--muted);border-top-style:dashed' }), 'Si hubieras seguido tu plan')),
-      h('p', { class: 'note' }, brecha >= 0 ? `Vas ${money(brecha)} arriba de tu plan desde el ${largo(base.fecha)}.` : `Vas ${money(-brecha)} abajo de tu plan desde el ${largo(base.fecha)}.`));
   }
+  const leyendaTend = () => h('div', { class: 'legend' }, h('span', {}, h('i', { style: 'border-color:var(--accent);border-top-width:3px' }), 'Real'), h('span', {}, h('i', { style: 'border-color:var(--muted);border-top-style:dashed' }), 'Si hubieras seguido tu plan'));
+
+  // full history, in its own screen: complete trend + every close grouped by month (month close rule), newest first
+  function viewHistorial() {
+    const cs = S.cierres, head = h('div', { class: 'head' }, h('span', { class: 'brand' }, 'Historial'), h('div', { class: 'head-r' }, helpBtn()));
+    if (cs.length < 2) return [head, h('section', { class: 'card' }, h('h2', {}, 'Tu historial'), h('p', { class: 'note' }, 'Aquí verás todos tus cierres y cómo va tu patrimonio contra tu plan, a partir de tu segundo cierre.'))];
+    const P = plan(S.modelo, today().slice(0, 7)), H = histCtx(), base = cs[0];
+    const abierto = S.histSel != null && S.histSel >= 1 && S.histSel < cs.length ? S.histSel : null;
+    const grupos = []; let g = null;
+    for (let i = 0; i < cs.length; i++) { const key = cs[i].fecha.slice(0, 7); if (!g || g.key !== key) grupos.push(g = { key, idx: [] }); g.idx.push(i); }
+    const tocar = (i) => () => { S.histSel = abierto === i ? null : i; render(); const r = document.getElementById(`hfila-${i}`); if (r && S.histSel === i) r.scrollIntoView({ block: 'start' }); };
+    const bloques = grupos.reverse().map((gr) => {
+      const gres = resumenMes(gr.key), nombre = MESL[+gr.key.slice(5, 7) - 1] + (gastoMes(gr.key) ? '' : ' (en curso)');
+      const filas = gr.idx.slice().reverse().flatMap((i) => {
+        if (i === 0) return [h('div', { class: 'cfila pp' }, h('span', { class: 'cm' }, corto(cs[0].fecha)), h('span', { class: 'note' }, 'Punto de partida'))];
+        const f = filaCierre(P, i, abierto, H, tocar(i)); f.id = `hfila-${i}`;
+        return abierto === i ? [f, h('div', { class: 'hist-det' }, viewCierre(P, i))] : [f];
+      });
+      const abiertos = S.mesAbiertos || (S.mesAbiertos = {}), contiene = abierto != null && gr.idx.includes(abierto);
+      const open = contiene || (abiertos[gr.key] != null ? abiertos[gr.key] : gr === grupos[0]);
+      return h('details', { class: 'hmes', open: open ? true : null, ontoggle: (e) => { abiertos[gr.key] = e.target.open; } }, h('summary', { class: 'hmes-h' }, h('b', {}, nombre.charAt(0).toUpperCase() + nombre.slice(1)),
+        gres && gres.valor !== '—' ? h('span', { class: 'hmes-s' }, markR(gres.g), `Gastaste ${gres.valor}${gres.estimado ? ' (est.)' : ''}`) : gres ? h('span', { class: 'hmes-s' }, markR(gres.g), gres.estado) : null),
+        h('div', { class: 'cfilas' }, filas));
+    });
+    const brecha = H.pat(cs.at(-1)) - (H.pat(base) + planEntre(base.fecha, cs.at(-1).fecha));
+    const n = cs.length - 1, gb = barrasGasto(n, 12), rl = lineaReserva(n, Infinity);
+    const sec = (t, ...kids) => h('div', { class: 'des-s' }, h('h3', {}, t), ...kids);
+    return [head,
+      h('section', { class: 'card', id: 'hist-tend' }, h('h2', {}, 'Tu desempeño'),
+        sec(`${H.useRes ? 'Tu patrimonio líquido' : 'Tu ahorro trabajado'} contra tu plan`, tendencia(cs.map((_, k) => k), H), leyendaTend(),
+          h('p', { class: 'note' }, brecha >= 0 ? `Vas ${money(brecha)} arriba de tu plan desde el ${largo(base.fecha)}.` : `Vas ${money(-brecha)} abajo de tu plan desde el ${largo(base.fecha)}.`)),
+        sec('Lo que gastaste, por mes', gb || h('p', { class: 'note' }, 'Con al menos 2 meses de cierres verás aquí lo que gastaste cada mes, en promedio por semana, contra tu plan.')),
+        sec('Tu reserva contra tu piso', rl || h('p', { class: 'note' }, 'Captura tu reserva en tus cierres para ver cómo va contra tu piso.'))),
+      h('section', { class: 'card', id: 'historial' }, h('h2', {}, 'Tus cierres'), h('p', { class: 'note', style: 'margin-top:-6px' }, 'Toca un mes para ver sus cierres, y un cierre para ver su detalle.'),
+        h('div', { class: 'cfilas' }, cabeceraCierres(H)), bloques)];
+  }
+
+
 
   function cierreForm(P) {
     const hoy = today(), msi = msiPendiente(hoy), ult = S.cierres.at(-1);
@@ -971,6 +1252,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
     };
     return h('div', { class: 'mform' },
       h('p', { class: 'note' }, 'Lo que tienes hoy en cada meta y lo que debes en tus tarjetas. Si una meta no cambió, déjala vacía.'),
+      (() => { const ym = hoy.slice(0, 7), fin = finMes(ym), falta = daysBetween(hoy, fin); return falta === 0 ? h('p', { class: 'tip' }, h('b', {}, `Este será tu cierre de ${MESL[+ym.slice(5, 7) - 1]}. `), 'Como es el último día del mes, el dato de lo que gastaste será exacto.') : falta <= 5 ? h('p', { class: 'tip' }, h('b', {}, `Tip: `), `si haces un cierre el ${corto(fin)}, el dato de ${MESL[+ym.slice(5, 7) - 1]} será exacto.`) : null; })(),
       ins.map(([m, i]) => h('label', { class: 'fld' }, m.nombre, i)),
       h('div', { class: 'fld' }, h('div', { class: 'top' }, h('span', {}, '¿Cuánto debes en tus tarjetas de crédito?'),
           tarjetas.length ? h('div', { class: 'switch', role: 'group', 'aria-label': 'Cómo capturar la deuda' }, [['tarjeta', 'Por tarjeta'], ['total', 'Total']].map(([k, l]) => h('button', { type: 'button', 'aria-pressed': String(modo === k), onclick: () => { S.modelo.deudaModo = k; save('modelo'); render(); } }, l))) : null),
@@ -1153,6 +1435,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
     return [h('div', { class: 'head' }, h('span', { class: 'brand' }, 'Mi modelo'), h('div', { class: 'head-r' }, helpBtn())), ingreso, viewObjetivos(), fijos, tarjetas, piso, viewRespaldo()];
   }
 
+
   // ---------------------------------------------------------- Ayuda: what each color means, how to use the app, glossary
   function viewAyuda() {
     const head = h('div', { class: 'head' }, h('button', { class: 'back', onclick: () => go(S.tabPrev || 'hoy') }, '‹ Volver'), h('div', { class: 'head-r' }, helpBtn()));
@@ -1184,7 +1467,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
         T('Utilidad bruta', 'Tu ingreso menos tus gastos fijos.'),
         T('Rango', 'Una banda de ±10% alrededor de tu plan. Dentro de ella vas bien aunque no cuadre al peso.'),
         T('Metas y ritmo', 'Cada cuenta o cajita donde ahorras. Solo capturas su saldo; el ritmo es cuánto creció por semana en las últimas semanas.'),
-        T('Cierre', 'La foto de tus saldos (metas, tarjetas y reserva) en una fecha. Con dos cierres veo qué pasó entre ellos.'),
+        T('Cierre y cierre del mes', 'La foto de tus saldos (metas, tarjetas y reserva) en una fecha. Con dos cierres veo qué pasó entre ellos. Si haces un cierre el último día del mes, el dato de ese mes es exacto; si no, reparto por días la semana que cruza el fin de mes y lo marco como estimado.'),
+        T('Lo que gastaste', 'Tu gasto flexible de verdad, en promedio por semana. Lo saco de tus saldos: lo que entró de tu sueldo, menos tus fijos, menos lo que crecieron tus cuentas. Lo que entró cuenta tus días de pago reales. A mitad de mes es un adelanto con tus últimas 4 semanas; al terminar el mes queda el dato del mes (exacto si cerraste el último día).'),
         T('Ahorro trabajado', 'Lo que tienes en tus metas menos lo que debes en tarjetas, sin contar las compras a meses que ya están en tus fijos. Es el patrimonio que genera tu sistema.'),
         T('Reserva para gastos y piso', 'Reserva: el efectivo en tu cuenta de débito o nómina para pagar fijos y gastos (sin las cuentas que ya son metas). Piso: el mínimo sano que deberías tener ahí.'),
         T('Patrimonio líquido', 'Ahorro trabajado + reserva.'),
@@ -1199,7 +1483,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-v
   document.querySelectorAll('.tabbar button').forEach((b) => b.addEventListener('click', () => go(b.dataset.tab)));
   function render() {
     document.querySelectorAll('.tabbar button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === S.tab)));
-    $('#app').replaceChildren(...[].concat(S.tab === 'ayuda' ? viewAyuda() : S.tab === 'modelo' ? viewModelo() : S.tab === 'gastos' ? viewGastos() : viewHoy()).filter(Boolean));
+    $('#app').replaceChildren(...[].concat(S.tab === 'historial' ? viewHistorial() : S.tab === 'ayuda' ? viewAyuda() : S.tab === 'modelo' ? viewModelo() : S.tab === 'gastos' ? viewGastos() : viewHoy()).filter(Boolean));
   }
   render();
 })();
